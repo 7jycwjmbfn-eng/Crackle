@@ -36,7 +36,7 @@ What was not reused as a claim:
 
 Main script:
 
-`C:\Users\hp\.codex\worktrees\581b\ai\crackle\experiments\hetero_pinning.py`
+`crackle/experiments/hetero_pinning.py`
 
 It implements:
 
@@ -210,4 +210,3 @@ Best next path if the project continues:
 Most honest current project conclusion:
 
 The old X-DEM-INR assets are useful as a neural variational field scaffold, but the new crack experiment does not yet justify deleting rollout. The cleanest direction is selective rollout, not full rollout removal.
-

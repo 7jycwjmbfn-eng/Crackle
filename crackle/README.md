@@ -52,7 +52,7 @@ Important sources:
 CUDA PyTorch was installed outside the repo:
 
 ```powershell
-$py='C:\Users\hp\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe'
+$py='<path-to-python>'
 $target='G:\GaussMoE_Workspace\python_pkgs\torch_cuda_128'
 $tmp='G:\GaussMoE_Workspace\python_pkgs\pip_tmp_torch_cuda'
 $cache='G:\GaussMoE_Workspace\python_pkgs\pip_cache'
