@@ -355,7 +355,7 @@ def evaluate_model(
         "split_id": _case_label(samples, "split_id"),
         "seed": seed,
         "dataset_hash": meta.get("dataset_hash") or manifest.get("dataset_hash"),
-        "teacher_version": _case_label(samples, "teacher_version") or "dense_gaussian_horizon_pd_v0",
+        "teacher_version": _case_label(samples, "teacher_version") or "dense_horizon_pd_v0",
         "claim_allowed": False,
         "uses_future_labels": bool(payload.get("uses_future_labels", False)),
         "oracle_row": bool(payload.get("oracle_row", False)),

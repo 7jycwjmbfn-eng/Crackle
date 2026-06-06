@@ -6,17 +6,17 @@ Scope: first controlled measurement for the "cut autoregressive rollout" hypothe
 
 ## 1. What Was Actually Reused From Old X-DEM-INR Assets
 
-The user pointed to the prior X-DEM-INR/DEM-INR asset family under `E:\AICAD_Workflow`. I inspected the relevant documents, code, and run reports before trusting the new experiment.
+The user pointed to the prior X-DEM-INR/DEM-INR asset family under `<prior-local-asset-root>`. I inspected the relevant documents, code, and run reports before trusting the new experiment.
 
 Most relevant old assets:
 
-- `E:\AICAD_Workflow\LLM-Driven-CAD-Loop-recovered-local\aicad_workflow\research\dem_inr_training_plan.md`
-- `E:\AICAD_Workflow\cloud_upload_20260524_2235\AICAD_Workflow\LLM-Driven-CAD-Loop\aicad_workflow\research\x_dem_inr_implementation_plan.md`
-- `E:\AICAD_Workflow\cloud_upload_20260524_2235\AICAD_Workflow\LLM-Driven-CAD-Loop\aicad_workflow\research\ast_transdem_implementation_plan_2026-05-24.md`
-- `E:\AICAD_Workflow\LLM-Driven-CAD-Loop-recovered-local\aicad_workflow\ml\x_dem_inr_2d_smoke.py`
-- `E:\AICAD_Workflow\cloud_upload_20260524_2235\AICAD_Workflow\LLM-Driven-CAD-Loop\aicad_workflow\ml\x_dem_inr_p2_hybrid_trainer.py`
-- `E:\AICAD_Workflow\cloud_upload_20260524_2235\AICAD_Workflow\LLM-Driven-CAD-Loop\aicad_workflow\ml\x_dem_inr_evaluator.py`
-- `E:\AICAD_Workflow\cloud_results\20260525_final_xdem_pno_42773\xdem_true_dem_p3_rar_cont_report.json`
+- `<prior-local-asset-root>\<prior-project>-recovered-local\workflow\research\dem_inr_training_plan.md`
+- `<prior-local-asset-root>\cloud_upload_20260524_2235\<prior-project-workspace>\<prior-project>\workflow\research\x_dem_inr_implementation_plan.md`
+- `<prior-local-asset-root>\cloud_upload_20260524_2235\<prior-project-workspace>\<prior-project>\workflow\research\ast_transdem_implementation_plan_2026-05-24.md`
+- `<prior-local-asset-root>\<prior-project>-recovered-local\workflow\ml\x_dem_inr_2d_smoke.py`
+- `<prior-local-asset-root>\cloud_upload_20260524_2235\<prior-project-workspace>\<prior-project>\workflow\ml\x_dem_inr_p2_hybrid_trainer.py`
+- `<prior-local-asset-root>\cloud_upload_20260524_2235\<prior-project-workspace>\<prior-project>\workflow\ml\x_dem_inr_evaluator.py`
+- `<prior-local-asset-root>\cloud_results\20260525_final_xdem_pno_42773\xdem_true_dem_p3_rar_cont_report.json`
 
 Key reused implementation ideas:
 
@@ -84,7 +84,7 @@ The downloaded real fracture datasets are not used in this controlled heterogene
 
 Path:
 
-`G:\GaussMoE_Workspace\crackle_runs\hetero_pinning_v1_topk_full_20260606`
+`<workspace>\crackle_runs\hetero_pinning_v1_topk_full_20260606`
 
 Status:
 
@@ -96,7 +96,7 @@ Status:
 
 Path:
 
-`G:\GaussMoE_Workspace\crackle_runs\hetero_pinning_xdemcore_smallmatrix_20260606`
+`<workspace>\crackle_runs\hetero_pinning_xdemcore_smallmatrix_20260606`
 
 Settings:
 
@@ -126,7 +126,7 @@ The strict core metric shows the global field is not matching the discrete crack
 
 Path:
 
-`G:\GaussMoE_Workspace\crackle_runs\hetero_pinning_xdemcore_smallmatrix_thr02_20260606`
+`<workspace>\crackle_runs\hetero_pinning_xdemcore_smallmatrix_thr02_20260606`
 
 Settings:
 
@@ -210,3 +210,4 @@ Best next path if the project continues:
 Most honest current project conclusion:
 
 The old X-DEM-INR assets are useful as a neural variational field scaffold, but the new crack experiment does not yet justify deleting rollout. The cleanest direction is selective rollout, not full rollout removal.
+

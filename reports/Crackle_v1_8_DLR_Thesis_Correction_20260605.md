@@ -16,7 +16,7 @@ It does not prove superiority over the fair DLR baseline, which should be a CNN-
 
 Dataset:
 
-`G:\GaussMoE_Workspace\external_datasets\real_fracture_20260605\dlr_dic_zenodo_5740216\S_160_4.7.zip`
+`<workspace>\external_datasets\real_fracture_20260605\dlr_dic_zenodo_5740216\S_160_4.7.zip`
 
 Protocol:
 
@@ -43,7 +43,7 @@ Readout:
 
 Output:
 
-`G:\GaussMoE_Workspace\crackle_runs\crackle_v1_8_dlr_spatial_20260605\dlr_s160_47_xgb64_frontier_readout\dlr_spatial_metrics.csv`
+`<workspace>\crackle_runs\crackle_v1_8_dlr_spatial_20260605\dlr_s160_47_xgb64_frontier_readout\dlr_spatial_metrics.csv`
 
 ## DLR Next-Stage Tip Forecast Audit
 
@@ -74,7 +74,7 @@ Readout:
 
 Output:
 
-`G:\GaussMoE_Workspace\crackle_runs\crackle_v1_8_dlr_spatial_20260605\dlr_tip_forecast_xgb\dlr_tip_forecast_metrics.csv`
+`<workspace>\crackle_runs\crackle_v1_8_dlr_spatial_20260605\dlr_tip_forecast_xgb\dlr_tip_forecast_metrics.csv`
 
 ## GPU Reality
 
@@ -110,3 +110,4 @@ Next honest options:
 1. implement or reproduce the DLR CNN/Williams detector as the fair detection baseline;
 2. acquire AE/event tables or hard mixed-mode/heterogeneous crack sequences for true hazard validation;
 3. keep Crackle novelty on hard event forecasting, not current-frame DIC detection.
+

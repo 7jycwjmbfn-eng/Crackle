@@ -17,7 +17,7 @@ This run found a real improvement, but also clarified the boundary.
 Root:
 
 ```text
-G:\GaussMoE_Workspace\external_datasets
+<workspace>\external_datasets
 ```
 
 Total retained local external files:
@@ -68,12 +68,12 @@ Subtotal:
 
 ### Deleted as useless residue
 
-Verified each path was under `G:\GaussMoE_Workspace\external_datasets` before deletion.
+Verified each path was under `<workspace>\external_datasets` before deletion.
 
 ```text
-G:\GaussMoE_Workspace\external_datasets\crack_public_hf_20260605\.python_pkgs
-G:\GaussMoE_Workspace\external_datasets\crack_public_hf_20260605\raw_parquet\crackedcity__nvidia-hackathon-dataset
-G:\GaussMoE_Workspace\external_datasets\crack_public_hf_more_20260605\raw_parquet\rievil__crackenpy_dataset
+<workspace>\external_datasets\crack_public_hf_20260605\.python_pkgs
+<workspace>\external_datasets\crack_public_hf_20260605\raw_parquet\crackedcity__nvidia-hackathon-dataset
+<workspace>\external_datasets\crack_public_hf_more_20260605\raw_parquet\rievil__crackenpy_dataset
 ```
 
 Reasons:
@@ -170,7 +170,7 @@ Important contract tests still passing:
 Data:
 
 ```text
-G:\GaussMoE_Workspace\crackle_runs\crackle_v1_2_hard64_20260605\data
+<workspace>\crackle_runs\crackle_v1_2_hard64_20260605\data
 dataset_hash = 900775233e6adaff
 64 total cases
 52 train cases
@@ -192,7 +192,7 @@ pairwise_rows = 0
 Main output:
 
 ```text
-G:\GaussMoE_Workspace\crackle_runs\crackle_v1_5_fast_ranker_20260605\sweep_full_3seed_online_history\crackle_active_sweep_v2.csv
+<workspace>\crackle_runs\crackle_v1_5_fast_ranker_20260605\sweep_full_3seed_online_history\crackle_active_sweep_v2.csv
 ```
 
 ## 6. Final 3-Seed Active Sweep
@@ -296,3 +296,4 @@ total_step_ms                = 4.3186
 ```
 
 The next performance target is `intensity_eval_ms`, not model training.
+

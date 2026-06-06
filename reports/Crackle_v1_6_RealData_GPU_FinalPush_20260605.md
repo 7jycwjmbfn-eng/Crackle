@@ -6,7 +6,7 @@ Date: 2026-06-05
 
 Real data landed under:
 
-`G:\GaussMoE_Workspace\external_datasets\real_fracture_20260605`
+`<workspace>\external_datasets\real_fracture_20260605`
 
 | Dataset | Local status | Useful for | Not useful for |
 |---|---:|---|---|
@@ -48,13 +48,13 @@ But inference still warns about CPU input vs CUDA booster, and active-sweep is d
 
 Dataset:
 
-`G:\GaussMoE_Workspace\crackle_runs\crackle_v1_2_hard64_20260605\data`
+`<workspace>\crackle_runs\crackle_v1_2_hard64_20260605\data`
 
 Hash: `900775233e6adaff`
 
 Output:
 
-`G:\GaussMoE_Workspace\crackle_runs\crackle_v1_6_realdata_gpu_20260605\synthetic_hazard_active_sweep\synthetic_hazard_aggregate.csv`
+`<workspace>\crackle_runs\crackle_v1_6_realdata_gpu_20260605\synthetic_hazard_active_sweep\synthetic_hazard_aggregate.csv`
 
 No-threshold active sweep, mean across seeds:
 
@@ -80,7 +80,7 @@ High-recall models are not faster than dense in full-overhead wall-clock. Cox is
 
 Output:
 
-`G:\GaussMoE_Workspace\crackle_runs\crackle_v1_6_realdata_gpu_20260605\real_nasa_phm_curve_v2\real_curve_headtohead.csv`
+`<workspace>\crackle_runs\crackle_v1_6_realdata_gpu_20260605\real_nasa_phm_curve_v2\real_curve_headtohead.csv`
 
 Protocol: first 30% known, predict last 70%.
 
@@ -103,7 +103,7 @@ This is a real-data positive signal for Cox/GBM-style survival features, but it 
 
 Output:
 
-`G:\GaussMoE_Workspace\crackle_runs\crackle_v1_6_realdata_gpu_20260605\synthetic_competitor_headtohead\synthetic_competitor_family_aggregate.csv`
+`<workspace>\crackle_runs\crackle_v1_6_realdata_gpu_20260605\synthetic_competitor_headtohead\synthetic_competitor_family_aggregate.csv`
 
 Lower curve RMSE is better:
 
@@ -139,3 +139,4 @@ Downgrade:
 Claim boundary:
 
 Do not claim this beats dense PD/FEM at matched physical fidelity yet. Do claim that the event/hazard direction is alive, that real curve validation is now wired in, and that the next decisive work is GPU-side active-set/features/predictor fusion plus true AE/event-table acquisition.
+

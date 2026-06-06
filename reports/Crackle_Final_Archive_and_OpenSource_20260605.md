@@ -107,3 +107,4 @@ Research archive for crack-event forecasting and DIC crack-tip localization expe
 ```text
 Crackle is an auditable fracture-AI research archive. It provides reproducible baselines and clear negative results, but it does not yet validate a real-data hazard-forecasting breakthrough.
 ```
+

@@ -4,7 +4,7 @@ Date: 2026-06-06
 
 Run:
 
-`G:\GaussMoE_Workspace\crackle_runs\hetero_pinning_xdemcore_fullcl_thr02_20260606`
+`<workspace>\crackle_runs\hetero_pinning_xdemcore_fullcl_thr02_20260606`
 
 ## 1. Scope
 
@@ -135,4 +135,5 @@ Main run files:
 Auxiliary report:
 
 - `reports/hetero_pinning_xdem_asset_audit_20260606.md`
+
 

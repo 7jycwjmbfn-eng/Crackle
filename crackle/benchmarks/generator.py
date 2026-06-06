@@ -17,39 +17,18 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    try:
-        from gaussmoe_physics.data.make_crack_notched_plate import main as make_crack_main
-    except ImportError as exc:
-        raise SystemExit(
-            "crackle.benchmarks.generator is a compatibility wrapper for the older "
-            "GaussMoE dense-PD dataset generator. Install or place gaussmoe_physics "
-            "on PYTHONPATH to use this entry point. Core Crackle models, metrics, "
-            "real-data audits, and hetero_pinning do not require this import."
-        ) from exc
-
     args = build_parser().parse_args(argv)
-    cmd = [
-        "--out",
-        str(args.out),
-        "--num-samples",
-        str(args.num_samples),
-        "--num-particles",
-        str(args.num_particles),
-        "--steps",
-        str(args.steps),
-        "--horizon",
-        str(args.horizon),
-        "--seed",
-        str(args.seed),
-        "--hard-bench-v1",
-    ]
-    if args.quiet:
-        cmd.append("--quiet")
-    rc = make_crack_main(cmd)
-    manifest = args.out / "dataset_manifest.json"
-    result = {"manifest": str(manifest), "return_code": rc, "note": "partial_observation_variant is applied during Crackle riskset construction via partial_observation_mask."}
+    result = {
+        "requested_out": str(args.out),
+        "return_code": 2,
+        "note": (
+            "The historical dense-PD dataset generator is not bundled in this public archive. "
+            "Use crackle.experiments.hetero_pinning for the self-contained synthetic fracture "
+            "study, or provide your own event catalog and build risk sets with crackle.data."
+        ),
+    }
     print(json.dumps(result, ensure_ascii=False, indent=2))
-    return rc
+    return 2
 
 
 if __name__ == "__main__":

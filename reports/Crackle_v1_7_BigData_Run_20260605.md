@@ -10,11 +10,11 @@ This run continues the crack branch with larger real crack/DIC data. L-bracket F
 
 | dataset | local path | status | useful role |
 |---|---|---|---|
-| CrackMNIST 64 L | `G:\GaussMoE_Workspace\external_datasets\real_fracture_20260605\crackmnist_cache\crackmnist_64_L.h5` | verified MD5 `5963d788af31f4a24ebe904cb3ad43db` | DIC displacement fields + crack-tip / crack-path masks for real tip localization validation/training |
-| CrackMNIST 128 L | `G:\GaussMoE_Workspace\external_datasets\real_fracture_20260605\crackmnist_cache\crackmnist_128_L.h5` | verified MD5 `5527a54cc382623edcb2022e95a9ed2d`; first interrupted copy quarantined and removed after MD5 mismatch | higher-resolution DIC/mask training |
-| DLR DIC S_160_2.0 | `G:\GaussMoE_Workspace\external_datasets\real_fracture_20260605\dlr_dic_zenodo_5740216\S_160_2.0.zip` | zip valid; MD5 `108B0B6C9BF100BD44415199CC8D4261`; 1413 entries | DIC nodemap / force / crack-length style covariates; not mask-supervised in this archive |
-| DLR DIC S_160_4.7 | `G:\GaussMoE_Workspace\external_datasets\real_fracture_20260605\dlr_dic_zenodo_5740216\S_160_4.7.zip` | previously verified; contains GroundTruth and Nodemaps | DIC crack mask / tip validation |
-| NASA PHM 2019 fatigue curves | `G:\GaussMoE_Workspace\external_datasets\real_fracture_20260605\nasa_phm_2019\PHMDC2019_Data.try.zip` | verified zip | 1D curve forecasting / Paris competitor head-to-head |
+| CrackMNIST 64 L | `<workspace>\external_datasets\real_fracture_20260605\crackmnist_cache\crackmnist_64_L.h5` | verified MD5 `5963d788af31f4a24ebe904cb3ad43db` | DIC displacement fields + crack-tip / crack-path masks for real tip localization validation/training |
+| CrackMNIST 128 L | `<workspace>\external_datasets\real_fracture_20260605\crackmnist_cache\crackmnist_128_L.h5` | verified MD5 `5527a54cc382623edcb2022e95a9ed2d`; first interrupted copy quarantined and removed after MD5 mismatch | higher-resolution DIC/mask training |
+| DLR DIC S_160_2.0 | `<workspace>\external_datasets\real_fracture_20260605\dlr_dic_zenodo_5740216\S_160_2.0.zip` | zip valid; MD5 `108B0B6C9BF100BD44415199CC8D4261`; 1413 entries | DIC nodemap / force / crack-length style covariates; not mask-supervised in this archive |
+| DLR DIC S_160_4.7 | `<workspace>\external_datasets\real_fracture_20260605\dlr_dic_zenodo_5740216\S_160_4.7.zip` | previously verified; contains GroundTruth and Nodemaps | DIC crack mask / tip validation |
+| NASA PHM 2019 fatigue curves | `<workspace>\external_datasets\real_fracture_20260605\nasa_phm_2019\PHMDC2019_Data.try.zip` | verified zip | 1D curve forecasting / Paris competitor head-to-head |
 
 Important caution: the first `crackmnist_128_L.h5` download had the correct byte length and could be opened by HDF5, but its MD5 was `acecab9e02e9c2d7fc27cc2f7bc726fe`, not the Zenodo/API checksum `5527a54cc382623edcb2022e95a9ed2d`. It has been moved to a `suspect_md5` filename and must not be used for claims.
 After re-download with range chunks, the final `128_L` file passed the Zenodo/API MD5 and the suspect copy plus chunk files were removed.
@@ -118,12 +118,13 @@ This does not mean the hazard model is fully validated. It only says the curve p
 
 | artifact | path |
 |---|---|
-| XGBoost metrics | `G:\GaussMoE_Workspace\crackle_runs\crackle_v1_7_bigdata_20260605\crackmnist_64L_xgb_cuda\crackmnist_xgb_metrics.csv` |
-| DIC rule metrics | `G:\GaussMoE_Workspace\crackle_runs\crackle_v1_7_bigdata_20260605\crackmnist_64L_dic_rules\crackmnist_rule_metrics.csv` |
-| Combined comparison | `G:\GaussMoE_Workspace\crackle_runs\crackle_v1_7_bigdata_20260605\crackmnist_64L_model_comparison.csv` |
-| Three-seed aggregate | `G:\GaussMoE_Workspace\crackle_runs\crackle_v1_7_bigdata_20260605\crackmnist_64L_xgb_seed_aggregate.csv` |
-| v1.7 summary | `G:\GaussMoE_Workspace\crackle_runs\crackle_v1_7_bigdata_20260605\crackle_v1_7_summary.csv` |
+| XGBoost metrics | `<workspace>\crackle_runs\crackle_v1_7_bigdata_20260605\crackmnist_64L_xgb_cuda\crackmnist_xgb_metrics.csv` |
+| DIC rule metrics | `<workspace>\crackle_runs\crackle_v1_7_bigdata_20260605\crackmnist_64L_dic_rules\crackmnist_rule_metrics.csv` |
+| Combined comparison | `<workspace>\crackle_runs\crackle_v1_7_bigdata_20260605\crackmnist_64L_model_comparison.csv` |
+| Three-seed aggregate | `<workspace>\crackle_runs\crackle_v1_7_bigdata_20260605\crackmnist_64L_xgb_seed_aggregate.csv` |
+| v1.7 summary | `<workspace>\crackle_runs\crackle_v1_7_bigdata_20260605\crackle_v1_7_summary.csv` |
 
 ## Decision
 
 Use CrackMNIST 64L immediately for real DIC/mask spatial validation. Use CrackMNIST 128L only after checksum passes. Keep NASA PHM curves for curve/Paris competitor reporting, but do not confuse curve RMSE with spatial hazard validation.
+

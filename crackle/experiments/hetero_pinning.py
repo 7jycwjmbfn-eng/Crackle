@@ -1151,7 +1151,7 @@ def write_report(path: Path, *, rows: list[dict[str, Any]], aggregate: list[dict
         "- H1: energy uses explicit `sum(dV_i * density_i)` and checks `sum(dV)=V_total`.",
         "- H2: DEM strain and damage gradients are computed through autograd coordinates.",
         "- H3: `G_c(x)` enters coordinate-wise as input and in the surface energy.",
-        "- H4: the notch seed uses smooth sigmoid/Gaussian functions in the differentiable path.",
+        "- H4: the notch seed uses smooth sigmoid/radial functions in the differentiable path.",
         "- H5: no FEM/PD anchor labels are used in DEM optimization.",
         "- H6: bbox/origin/unit/range are recorded in JSON outputs.",
         "",
@@ -1206,7 +1206,7 @@ def write_report(path: Path, *, rows: list[dict[str, Any]], aggregate: list[dict
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Controlled heterogeneity-pinning experiment for rollout-cut fracture.")
-    parser.add_argument("--out", type=Path, default=Path(r"G:\GaussMoE_Workspace\crackle_runs\hetero_pinning_20260606"))
+    parser.add_argument("--out", type=Path, default=Path("runs/hetero_pinning_20260606"))
     parser.add_argument("--contrasts", type=str, default="1.0,1.5,2.0,3.0,5.0")
     parser.add_argument("--corr-lengths", type=str, default="small,medium,large")
     parser.add_argument("--num-seeds", type=int, default=3)
@@ -1314,9 +1314,9 @@ def main(argv: list[str] | None = None) -> int:
         "xdem_asset_reuse": {
             "core": "multires hash grid + sine worker + exact residual ansatz",
             "source_assets": [
-                "E:/AICAD_Workflow/LLM-Driven-CAD-Loop-recovered-local/aicad_workflow/ml/x_dem_inr_2d_smoke.py",
-                "E:/AICAD_Workflow/cloud_upload_20260524_2235/AICAD_Workflow/LLM-Driven-CAD-Loop/aicad_workflow/ml/x_dem_inr_evaluator.py",
-                "E:/AICAD_Workflow/cloud_upload_20260524_2235/AICAD_Workflow/LLM-Driven-CAD-Loop/aicad_workflow/ml/x_dem_inr_p2_hybrid_trainer.py"
+                "x_dem_inr_2d_smoke.py",
+                "x_dem_inr_evaluator.py",
+                "x_dem_inr_p2_hybrid_trainer.py"
             ],
             "not_reused_yet": "full RAR scheduler and FEM hotspot anchor, because this fracture sweep uses synthetic heterogeneous Gc rather than FEM stress labels"
         },
