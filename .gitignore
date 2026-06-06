@@ -1,0 +1,43 @@
+# Python / editor cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.idea/
+
+# Local config / secrets
+.env
+.env.*
+!.env.example
+private/
+local_private/
+secrets/
+
+# Data, checkpoints, and generated run artifacts
+data/
+datasets/
+external_datasets/
+runs/
+outputs/
+checkpoints/
+models/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.safetensors
+*.h5
+*.hdf5
+*.npz
+*.npy
+*.parquet
+*.zip
+*.rar
+*.7z
+
+# Logs / temp
+*.log
+tmp/
+temp/

@@ -1,0 +1,8 @@
+numpy
+scipy
+h5py
+xgboost
+pillow
+
+# CUDA training used PyTorch from the official CUDA wheel index:
+# python -m pip install --index-url https://download.pytorch.org/whl/cu128 torch torchvision
