@@ -16,13 +16,13 @@ local_private/
 secrets/
 
 # Data, checkpoints, and generated run artifacts
-data/
-datasets/
-external_datasets/
-runs/
-outputs/
-checkpoints/
-models/
+/data/
+/datasets/
+/external_datasets/
+/runs/
+/outputs/
+/checkpoints/
+/models/
 *.pt
 *.pth
 *.ckpt
@@ -39,5 +39,5 @@ models/
 
 # Logs / temp
 *.log
-tmp/
-temp/
+/tmp/
+/temp/
