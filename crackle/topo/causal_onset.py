@@ -12,9 +12,10 @@ Evaluation conventions (these are EVALUATION-time quantities; they may be
 retrospective without contaminating the detectors):
 
 - instability_step t*    : argmax of the total-damage increment
-- growth_start           : first step with cumulative damage >= frac of
-                           final damage (default 5%) — "sustained damage
-                           growth" reference
+- growth_start           : first step of the first run of >= 3 consecutive
+                           positive damage increments ("sustained damage
+                           growth"; before it, nothing is happening that a
+                           legitimate precursor could be tracking)
 - first alarm < growth_start  -> false alarm for that case
 - lead = t* - first_alarm, reported only for non-false alarms
 """
@@ -63,14 +64,16 @@ def cusum_alarm(
     return None
 
 
-def growth_start_step(total_damage: np.ndarray, *, frac: float = 0.05) -> int:
+def growth_start_step(
+    total_damage: np.ndarray, *, min_consecutive: int = 3
+) -> int:
+    """First step of the first run of min_consecutive positive increments."""
     d = np.asarray(total_damage, dtype=np.float64)
-    d = d - d[0]
-    final = float(d[-1])
-    if final <= 0.0:
-        return d.size  # never grows: any alarm is false
-    hits = np.flatnonzero(d >= frac * final)
-    return int(hits[0]) if hits.size else d.size
+    inc = np.diff(d) > 1e-12
+    for t in range(inc.size - min_consecutive + 1):
+        if inc[t : t + min_consecutive].all():
+            return t + 1  # step index of the first increment in the run
+    return d.size  # never grows: any alarm is false
 
 
 @dataclass
@@ -103,14 +106,14 @@ def evaluate_case(
     detector: str,
     threshold: float,
     window: int = 10,
-    growth_frac: float = 0.05,
+    cusum_k: float = 0.5,
 ) -> CaseEval:
     from crackle.topo.instability import instability_step
 
     if detector == "z":
         alarm = rolling_z_alarm(signal, window=window, threshold=threshold)
     elif detector == "cusum":
-        alarm = cusum_alarm(signal, window=window, h=threshold)
+        alarm = cusum_alarm(signal, window=window, h=threshold, k=cusum_k)
     else:
         raise ValueError(f"unknown detector {detector!r}")
     return CaseEval(
@@ -120,5 +123,5 @@ def evaluate_case(
         threshold=threshold,
         first_alarm=alarm,
         t_star=instability_step(total_damage),
-        growth_start=growth_start_step(total_damage, frac=growth_frac),
+        growth_start=growth_start_step(total_damage),
     )
