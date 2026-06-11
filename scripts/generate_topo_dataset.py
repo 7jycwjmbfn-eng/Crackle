@@ -34,7 +34,7 @@ from typing import Any
 
 import numpy as np
 
-from crackle.topo import extract_events, sequence_summaries
+from crackle.topo import extract_events, horizon_margin_mask, sequence_summaries
 from crackle.topo.synth import sample_case, simulate_multinotch
 
 _WORKER_ARGS: dict[str, Any] = {}
@@ -60,9 +60,10 @@ def _one_case(case_index: int) -> dict[str, Any]:
     case_id = f"case_{case_index:06d}"
     shard = Path(a["out"]) / "shards" / f"{case_id}.npz"
     shard.parent.mkdir(parents=True, exist_ok=True)
+    movie_u8 = np.clip(np.rint(movie * 255.0), 0, 255).astype(np.uint8)
     np.savez_compressed(
         shard,
-        movie_u8=np.clip(np.rint(movie * 255.0), 0, 255).astype(np.uint8),
+        movie_u8=movie_u8,
         gc_field=out["gc_field"].astype(np.float16),
         meta=json.dumps({**case.meta, "contrast": case.contrast,
                          "corr_length_mm": case.corr_length_mm,
@@ -78,8 +79,16 @@ def _one_case(case_index: int) -> dict[str, Any]:
         "n_bonds": int(out["n_bonds"]),
     }
     if a["with_tda"]:
-        _, diags = sequence_summaries(movie, sig_tau=a["sig_tau"])
-        events = extract_events(diags, sig_tau=a["sig_tau"])
+        # TDA on the QUANTIZED movie (what downstream consumers will load)
+        # with the Phase 1 ROI, so manifest stats match catalog reruns exactly
+        roi = (
+            horizon_margin_mask(case.ny, case.nx, height=case.height,
+                                horizon=case.horizon, k=a["roi_margin_k"])
+            if a["roi_margin_k"] > 0
+            else None
+        )
+        _, diags = sequence_summaries(movie_u8 / 255.0, sig_tau=a["sig_tau"], roi=roi)
+        events = extract_events(diags, sig_tau=a["sig_tau"], roi=roi)
         cat = Path(a["out"]) / "catalogs" / f"{case_id}_events.csv"
         cat.parent.mkdir(parents=True, exist_ok=True)
         with cat.open("w", newline="", encoding="utf-8") as handle:
@@ -107,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--edge-notch-prob", type=float, default=0.5)
     parser.add_argument("--with-tda", action="store_true")
     parser.add_argument("--sig-tau", type=float, default=0.08)
+    parser.add_argument("--roi-margin-k", type=float, default=1.5)
     args = parser.parse_args(argv)
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -146,7 +156,8 @@ def main(argv: list[str] | None = None) -> int:
         h1 = np.array([r.get("n_h1_events", 0) for r in rows], dtype=float)
         card += [
             "",
-            f"TDA (sig_tau={args.sig_tau}): events/case mean {ev.mean():.1f} "
+            f"TDA (sig_tau={args.sig_tau}, roi_margin_k={args.roi_margin_k}, "
+            f"on quantized movie): events/case mean {ev.mean():.1f} "
             f"(p10 {np.percentile(ev,10):.0f}, p90 {np.percentile(ev,90):.0f}); "
             f"H1 events/case mean {h1.mean():.1f}.",
         ]
