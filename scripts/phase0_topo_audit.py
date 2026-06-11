@@ -42,6 +42,7 @@ import matplotlib.pyplot as plt
 from crackle.topo import (
     event_count_curves,
     extract_events,
+    horizon_margin_mask,
     instability_step,
     lead_time_table,
     load_case_npz,
@@ -130,12 +131,28 @@ def audit_case(
     sig_tau: float,
     match_dist: float,
     connectivity: str,
+    roi_k: float = 0.0,
+    height: float = 40.0,
+    horizon: float = 5.2,
+    matcher: str = "wasserstein",
 ) -> dict[str, Any]:
     t0 = time.perf_counter()
-    rows, diagrams = sequence_summaries(
-        fields, sig_tau=sig_tau, connectivity=connectivity
+    ny, nx = fields.shape[1], fields.shape[2]
+    # boundary attribution uses the same margin whether or not ROI filters,
+    # so ROI-off and ROI-on reports stay comparable
+    attr_k = roi_k if roi_k > 0 else 1.5
+    margin_rows = int(np.ceil(attr_k * horizon / (height / max(ny - 1, 1))))
+    roi = (
+        horizon_margin_mask(ny, nx, height=height, horizon=horizon, k=roi_k)
+        if roi_k > 0
+        else None
     )
-    events = extract_events(diagrams, sig_tau=sig_tau, max_dist=match_dist)
+    rows, diagrams = sequence_summaries(
+        fields, sig_tau=sig_tau, connectivity=connectivity, roi=roi
+    )
+    events = extract_events(
+        diagrams, sig_tau=sig_tau, max_dist=match_dist, roi=roi, method=matcher
+    )
     n_steps = fields.shape[0]
     curves_raw = {k: np.array([r[k] for r in rows]) for k in rows[0] if k != "step"}
     counts = event_count_curves(events, n_steps)
@@ -198,9 +215,16 @@ def audit_case(
     plt.close(fig)
 
     elapsed = time.perf_counter() - t0
+    n_boundary = sum(
+        1 for e in events if e.y < margin_rows or e.y >= ny - margin_rows
+    )
     summary: dict[str, Any] = {
         "case_id": case_id, **meta,
         "n_steps": int(n_steps),
+        "roi_k": float(roi_k),
+        "margin_rows": int(margin_rows),
+        "n_events_boundary": int(n_boundary),
+        "n_events_interior": int(len(events) - n_boundary),
         "n_h0_born": int(counts["h0_born"].sum()),
         "n_h0_died": int(counts["h0_died"].sum()),
         "n_h1_born": int(counts["h1_born"].sum()),
@@ -223,17 +247,20 @@ def write_report(out_dir: Path, summaries: list[dict[str, Any]], args_ns: argpar
         "# Phase 0 Topological Audit",
         "",
         f"sig_tau={args_ns.sig_tau}, connectivity={args_ns.connectivity}, "
-        f"match_dist={args_ns.match_dist}",
+        f"match_dist={args_ns.match_dist}, roi_margin_k={args_ns.roi_margin_k}, "
+        f"matcher={args_ns.matcher}",
         "",
         "Question: is there enough topological signal in these damage movies "
         "to define an event stream worth forecasting?",
         "",
-        "| case | events total | ev/step | H0 born/died | H1 born/died | t* | best lead |",
-        "|---|---|---|---|---|---|---|",
+        "| case | events total | ev/step | boundary/interior | H0 born/died "
+        "| H1 born/died | t* | best lead |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for s in summaries:
         lines.append(
             f"| {s['case_id']} | {s['n_events_total']} | {s['events_per_step']:.2f} "
+            f"| {s['n_events_boundary']}/{s['n_events_interior']} "
             f"| {s['n_h0_born']}/{s['n_h0_died']} | {s['n_h1_born']}/{s['n_h1_died']} "
             f"| {s['instability_step']} | {s['best_lead_steps']} |"
         )
@@ -260,6 +287,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--match-dist", type=float, default=6.0,
                         help="max grid-cell distance for frame-to-frame matching")
     parser.add_argument("--connectivity", type=str, default="8", choices=["4", "8"])
+    parser.add_argument("--roi-margin-k", type=float, default=0.0,
+                        help="exclude k*horizon from top/bottom edges at the "
+                             "diagram level (0 = off); spec 1.1 default 1.5")
+    parser.add_argument("--matcher", type=str, default="wasserstein",
+                        choices=["greedy", "wasserstein"])
     # synthetic-mode physics arguments mirror hetero_pinning defaults
     parser.add_argument("--contrasts", type=float, nargs="*", default=[1.0, 3.0, 5.0])
     parser.add_argument("--corr-lengths", type=str, nargs="*", default=["small", "medium"])
@@ -295,7 +327,10 @@ def main(argv: list[str] | None = None) -> int:
         summaries.append(
             audit_case(case_id, fields, meta, args.out,
                        sig_tau=args.sig_tau, match_dist=args.match_dist,
-                       connectivity=args.connectivity)
+                       connectivity=args.connectivity,
+                       roi_k=args.roi_margin_k,
+                       height=args.height, horizon=args.horizon,
+                       matcher=args.matcher)
         )
     _write_csv(args.out / "phase0_event_density.csv", summaries)
     write_report(args.out, summaries, args)

@@ -8,10 +8,10 @@ event stream that the existing Crackle survival/hazard machinery can consume:
 - h1_born : a significant loop appears (crack/damage encircles material)
 - h1_died : a loop is filled in or broken open
 
-Matching between consecutive diagrams is greedy nearest-neighbor on birth
-locations (plus a birth-value penalty), gated by a distance cutoff. This is a
-Phase-0 heuristic, NOT optimal transport; Phase 1 should swap in a proper
-Wasserstein matching (persim) if event identity over long horizons matters.
+Matching between consecutive diagrams runs on birth locations plus a
+birth-value penalty, gated by a distance cutoff (crackle.topo.matching).
+Default method is "wasserstein" (optimal assignment, Phase 1); the Phase-0
+greedy heuristic remains available as method="greedy".
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from crackle.topo.cubical import Diagram
+from crackle.topo.matching import match_features
 from crackle.topo.roi import apply_roi
 
 
@@ -43,40 +44,6 @@ class TopoEvent:
         }
 
 
-def _greedy_match(
-    a_yx: np.ndarray,
-    a_val: np.ndarray,
-    b_yx: np.ndarray,
-    b_val: np.ndarray,
-    *,
-    max_dist: float,
-    value_weight: float,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Greedy 1-1 matching. Returns (matched_a_mask, matched_b_mask)."""
-    na, nb = a_yx.shape[0], b_yx.shape[0]
-    matched_a = np.zeros((na,), dtype=bool)
-    matched_b = np.zeros((nb,), dtype=bool)
-    if na == 0 or nb == 0:
-        return matched_a, matched_b
-    d_sp = np.linalg.norm(
-        a_yx[:, None, :].astype(np.float64) - b_yx[None, :, :].astype(np.float64),
-        axis=2,
-    )
-    d_val = np.abs(a_val[:, None] - b_val[None, :])
-    cost = d_sp + float(value_weight) * d_val
-    cost[d_sp > float(max_dist)] = np.inf
-    flat = np.argsort(cost, axis=None)
-    for idx in flat:
-        i, j = np.unravel_index(idx, cost.shape)
-        if not np.isfinite(cost[i, j]):
-            break
-        if matched_a[i] or matched_b[j]:
-            continue
-        matched_a[i] = True
-        matched_b[j] = True
-    return matched_a, matched_b
-
-
 def _events_one_dim(
     prev: Diagram,
     curr: Diagram,
@@ -87,6 +54,7 @@ def _events_one_dim(
     max_dist: float,
     value_weight: float,
     roi: np.ndarray | None,
+    method: str,
 ) -> list[TopoEvent]:
     label = f"h{dim}"
     p = apply_roi(prev.select(prev.dim == dim), roi).significant(
@@ -95,9 +63,9 @@ def _events_one_dim(
     c = apply_roi(curr.select(curr.dim == dim), roi).significant(
         sig_tau, include_essential=False
     )
-    m_prev, m_curr = _greedy_match(
+    m_prev, m_curr = match_features(
         p.birth_yx, p.birth, c.birth_yx, c.birth,
-        max_dist=max_dist, value_weight=value_weight,
+        method=method, max_dist=max_dist, value_weight=value_weight,
     )
     events: list[TopoEvent] = []
     for j in np.flatnonzero(~m_curr):  # in curr, unmatched -> born
@@ -132,13 +100,16 @@ def extract_events(
     max_dist: float = 6.0,
     value_weight: float = 4.0,
     roi: np.ndarray | None = None,
+    method: str = "wasserstein",
 ) -> list[TopoEvent]:
     """Extract topological events from a diagram sequence.
 
     sig_tau filters noise bars BEFORE matching, so events are jumps in the
     *significant* topology only. max_dist is in grid cells. roi (bool
     (ny, nx) mask, True = keep) drops boundary-artifact features at the
-    diagram level before matching; see crackle.topo.roi.
+    diagram level before matching; see crackle.topo.roi. method selects
+    the matcher ("wasserstein" = optimal assignment, default since Phase 1;
+    "greedy" = Phase-0 heuristic); see crackle.topo.matching.
     """
     events: list[TopoEvent] = []
     for t in range(1, len(diagrams)):
@@ -153,6 +124,7 @@ def extract_events(
                     max_dist=max_dist,
                     value_weight=value_weight,
                     roi=roi,
+                    method=method,
                 )
             )
     return events
