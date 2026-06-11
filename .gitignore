@@ -15,8 +15,12 @@ private/
 local_private/
 secrets/
 
+# Python environments
+.venv/
+
 # Data, checkpoints, and generated run artifacts
-data/
+# NOTE: anchored to repo root — a bare `data/` also ignored the crackle/data package.
+/data/
 datasets/
 external_datasets/
 runs/
