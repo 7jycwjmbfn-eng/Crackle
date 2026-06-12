@@ -157,9 +157,6 @@ def main(argv: list[str] | None = None) -> int:
             "ll_kind_per_case": comp["kind"] / n,
             "ll_tile_per_case": comp["tile"] / n,
             "ll_total_per_case": sum(comp.values()) / n,
-            "kind_acc": float(p_kind.argmax() ==
-                              np.concatenate([packed[c].kinds for c in cids])
-                              ).__float__() if n else 0.0,
             "ks_frac_ok": ks_ok / max(ks_n, 1), "n_events": n_ev,
         })
     # kind_acc for the referee = majority-class rate, computed properly:
