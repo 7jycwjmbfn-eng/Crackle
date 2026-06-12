@@ -164,8 +164,17 @@ def notches_of(case: MultiNotchCase) -> list[Notch]:
     return case.notches
 
 
-def simulate_multinotch(case: MultiNotchCase) -> dict[str, np.ndarray | float]:
-    """Reference rollout. Returns damage movie (T+1, ny, nx) and bond data."""
+def simulate_multinotch(
+    case: MultiNotchCase, *, return_bonds: bool = False
+) -> dict[str, np.ndarray | float]:
+    """Reference rollout. Returns damage movie (T+1, ny, nx) and bond data.
+
+    With return_bonds=True the per-step bond state is included (Track C):
+    points (N, 2), bonds (B, 2), rest (B,), critical (B,), gc_bond (B,)
+    and alive_steps (T+1, B) bool. Stretch is NOT stored — the loading is
+    kinematic, so stretch at any step is recomputable from the case
+    parameters via bond_stretch_at().
+    """
     points, _, _, _ = make_grid(case.nx, case.ny, case.length, case.height)
     gc_field = correlated_toughness_field(
         nx=case.nx, ny=case.ny, length=case.length, height=case.height,
@@ -195,23 +204,43 @@ def simulate_multinotch(case: MultiNotchCase) -> dict[str, np.ndarray | float]:
     incident = np.maximum(incident, 1.0)
 
     movie = np.zeros((case.steps + 1, case.ny, case.nx), dtype=np.float64)
+    alive_steps = (
+        np.zeros((case.steps + 1, bonds.shape[0]), dtype=bool)
+        if return_bonds else None
+    )
     for step in range(case.steps + 1):
         pos = _positions(case, points, step / max(case.steps, 1))
         stretch = np.linalg.norm(pos[bonds[:, 1]] - pos[bonds[:, 0]], axis=1)
         stretch = (stretch - rest) / np.maximum(rest, 1e-12)
         if step > 0:
             alive_now = alive_now & ~(alive_now & (stretch > critical))
+        if alive_steps is not None:
+            alive_steps[step] = alive_now
         broken = np.zeros((n_nodes,), dtype=np.float64)
         dead = ~alive_now
         np.add.at(broken, bonds[dead, 0], 1.0)
         np.add.at(broken, bonds[dead, 1], 1.0)
         movie[step] = (broken / incident).reshape(case.ny, case.nx)
-    return {
+    out: dict[str, np.ndarray | float] = {
         "movie": movie,
         "gc_field": gc_field,
         "n_bonds": float(bonds.shape[0]),
         "final_broken_frac": float(np.mean(~alive_now)),
     }
+    if return_bonds:
+        out.update(points=points, bonds=bonds, rest=rest, critical=critical,
+                   gc_bond=gc_bond, alive_steps=alive_steps)
+    return out
+
+
+def bond_stretch_at(
+    case: MultiNotchCase, points: np.ndarray, bonds: np.ndarray,
+    rest: np.ndarray, step: int,
+) -> np.ndarray:
+    """Kinematic bond stretch at one load step (recompute, do not store)."""
+    pos = _positions(case, points, step / max(case.steps, 1))
+    stretch = np.linalg.norm(pos[bonds[:, 1]] - pos[bonds[:, 0]], axis=1)
+    return (stretch - rest) / np.maximum(rest, 1e-12)
 
 
 def sample_case(
