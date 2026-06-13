@@ -48,9 +48,15 @@ xgboost matplotlib`;Track A/B 另需 torch(cu128)。TDA 全程 CPU。
 - Track B:预注册 FAIL = 负结果——PersLay/固定 PI 不敌手工标量曲线。
 - Track C:预注册 PASS 3/3(最强)——键图 GNN 比同特征+一跳聚合的 GBM
   裁判低 35–58% NLL,OOD 下优势反而扩大。
-- Phase 3:四个公开源已检索并检查;Rimkus(优先级 1)实际拿到 =
-  load-strain 标量曲线 + 单帧 DIC 图,非逐帧场,做不出 movie;
-  真实数据拓扑验证仍开放,缺口明确为 DIC 逐帧场导出。
+- Phase 2.2 噪声消融(预注册 PASS):σ=0.05 噪声下 GBM (c) 拓扑特征仍
+  击败 (a) 纯局部 + 全部传统裁判(test+OOD 全 horizon);拓扑优势间隙
+  在噪声下完全保留——打赢传统法不是 clean 侥幸。
+- **Phase 3.2 真实数据(DONE,正结果):** Harb RC 板 25 加载阶段裂纹掩码
+  (Zenodo 15187675,CC-BY-4.0)。合成事件语法复现:h0_born 主导、核化
+  先于成环(中位 epoch 13 vs 19)、H0/H1 单调增长;对降采样/阈值/匹配器
+  鲁棒。n=1 试件。脚本 `scripts/topo_realdata_audit.py`,loader
+  `load_mask_sequence`。详见 topo_phase3_harb_audit_20260612.md。
+- 整合综述:reports/topo_branch_writeup_20260612.md。
 
 ## Claim boundary(合成世界)
 

@@ -21,8 +21,9 @@ individual reports referenced below.
 | Track A neural TPP [pre-registered] | **PASS** (with OOD count caveat) | topo_phase2_track_a_20260611.md |
 | Track B learned vectorization [pre-registered] | **FAIL — negative readout** | topo_phase2_track_b_20260611.md |
 | Track C bond-graph GNN [pre-registered] | **PASS 3/3** — −35…−58% NLL vs strong referee, strengthens OOD | topo_phase2_track_c_20260611.md |
-| Phase 3.1 DLR robustness | BLOCKED (no DLR run artifacts on this machine) | topo_phase3_realdata_20260611.md |
-| Phase 3.2 real multi-crack data | INSPECTED — Rimkus retrieved (load–strain curves, not crack fields); no field data in any public source | same |
+| Phase 3.1 DLR robustness | BLOCKED (no paired pred/ref artifacts on this machine) | topo_phase3_realdata_20260611.md |
+| Phase 3.2 real multi-crack data | **DONE — grammar reproduced** on a real RC slab (Harb et al., 25 epochs); robust to params | topo_phase3_harb_audit_20260612.md |
+| Branch writeup (consolidated narrative) | — | topo_branch_writeup_20260612.md |
 
 ## What the branch now claims (synthetic multi-notch kinematic world only)
 
@@ -75,11 +76,20 @@ individual reports referenced below.
    held-out 4-notch geometry — the cleanest positive transfer in the
    branch.
 
+8. REAL-DATA REPRODUCTION (Phase 3.2). On a real RC slab (Harb et al.,
+   25 load epochs of crack masks), the synthetic event grammar is
+   reproduced: h0_born dominates (1888/3517 events), nucleation precedes
+   loop formation (median epoch 13.0 vs 19.0), both Betti numbers grow
+   monotonically — robust across downscale {8,16,24}, sig_tau
+   {0.05,0.08}, and both matchers. n=1 specimen; masks are DL
+   segmentations; only the kind distribution and ordering transfer.
+
 ## What the branch does NOT claim
 
-- Nothing about real data (Phase 3 blocked: registry leads were
-  inspected and all three lack usable movie content; Rimkus DiB
-  supplement is the manual-retrieval priority).
+- Cross-specimen real-data statistics (Phase 3.2 is n=1, one slab);
+  no real-data forecasting (it is a descriptive audit). Other registry
+  leads (KTH, craquelure, desiccation, Rimkus) lack per-frame field data;
+  Rimkus's authors were emailed for the DIC field exports.
 - No quantitative mechanics (the generator is a kinematic proxy).
 - No operational forecasting utility (top-1% recall is 5–9%).
 - No well-calibrated event-stream intensities (KS rejects).
