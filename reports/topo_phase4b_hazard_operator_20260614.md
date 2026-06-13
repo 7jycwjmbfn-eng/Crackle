@@ -18,6 +18,7 @@ three horizons {3,5,10}.
 |-----------------------|-----------|-----------|------------|
 | op_fno (operator)     | 0.0360/0.255 | 0.0593/0.168 | 0.1156/0.089 |
 | op_convnet (operator) | 0.0360/0.275 | 0.0596/0.183 | 0.1164/0.097 |
+| op_deeponet (operator)| 0.0639/0.037 | 0.0947/0.038 | 0.1605/0.035 |
 | gbm_referee (traditional) | 0.0074/0.761 | 0.0117/0.474 | 0.0219/0.236 |
 | **bond_gnn (crackle)**| **0.0047/0.774** | **0.0059/0.474** | **0.0107/0.236** |
 
@@ -30,6 +31,7 @@ the GBM at H3/H5/H10.
 |-----------------------|-----------|-----------|------------|
 | op_fno                | 0.0293/0.289 | 0.0481/0.192 | 0.0899/0.108 |
 | op_convnet            | 0.0290/0.313 | 0.0478/0.210 | 0.0899/0.121 |
+| op_deeponet           | 0.0551/0.044 | 0.0824/0.045 | 0.1385/0.044 |
 | gbm_referee           | 0.0105/0.793 | 0.0168/0.587 | 0.0303/0.306 |
 | **bond_gnn (crackle)**| **0.0051/0.892** | **0.0070/0.595** | **0.0127/0.306** |
 
@@ -76,7 +78,9 @@ classical methods and neural operators, in- and out-of-distribution.
 - operators: `crackle/operators.py` (FNO2d/ConvNet now take `c_out`).
 - harness: `scripts/topo_track_c_operator.py` (rasterise node field ->
   per-cell hazard -> per-bond via endpoint mean -> masked BCE; same NLL/recall
-  as Track C). outputs `outputs/hazard_operator_tough/`.
+  as Track C). Operator family = FNO, ConvNet, DeepONet (DeepONet's global
+  basis is worst — top-1% recall ~0.04, near chance). outputs
+  `outputs/hazard_operator_v2/`.
 - crackle + GBM: `scripts/topo_track_c_bondgnn.py`, outputs
   `outputs/track_c_fresh/`.
 - Caveat: kinematic-proxy bond dataset (no quantitative mechanics claim); the

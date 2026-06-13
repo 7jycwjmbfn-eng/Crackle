@@ -62,11 +62,12 @@ def main(argv: list[str] | None = None) -> int:
 
     import torch
     import torch.nn.functional as F
-    from crackle.operators import FNO2d, ConvNet
+    from crackle.operators import FNO2d, ConvNet, DeepONet
 
     builders = {
         "fno": lambda: FNO2d(c_in=4, width=32, modes=12, n_layers=4, c_out=3),
         "convnet": lambda: ConvNet(c_in=4, width=48, n_blocks=5, c_out=3),
+        "deeponet": lambda: DeepONet(c_in=4, p=64, branch_width=48, c_out=3),
     }
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     print(f"device {device}", flush=True)

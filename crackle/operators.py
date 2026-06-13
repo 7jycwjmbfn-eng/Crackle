@@ -108,9 +108,11 @@ class DeepONet(nn.Module):
     operator alongside FNO — included so the neural-operator family is not
     represented by a single architecture (no cherry-picking a weak one)."""
 
-    def __init__(self, c_in: int = 2, p: int = 64, branch_width: int = 48):
+    def __init__(self, c_in: int = 2, p: int = 64, branch_width: int = 48,
+                 c_out: int = 1):
         super().__init__()
         self.p = p
+        self.c_out = c_out
         # branch: CNN encoder over the input field -> global latent (B, p)
         self.branch = nn.Sequential(
             nn.Conv2d(c_in, branch_width, 3, padding=1), nn.GELU(),
@@ -118,12 +120,12 @@ class DeepONet(nn.Module):
             nn.GELU(),
             nn.Conv2d(branch_width, branch_width, 3, padding=1, stride=2),
             nn.GELU(), nn.AdaptiveAvgPool2d(1))
-        self.branch_head = nn.Linear(branch_width, p)
+        self.branch_head = nn.Linear(branch_width, p * c_out)
         # trunk: per-coordinate MLP -> (H*W, p)
         self.trunk = nn.Sequential(
             nn.Linear(2, 96), nn.GELU(), nn.Linear(96, 96), nn.GELU(),
             nn.Linear(96, p))
-        self.bias = nn.Parameter(torch.zeros(1))
+        self.bias = nn.Parameter(torch.zeros(c_out))
         self._coords_cache: dict[tuple[int, int], torch.Tensor] = {}
 
     def _coords(self, h: int, w: int, device) -> torch.Tensor:
@@ -139,10 +141,13 @@ class DeepONet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, _, h, w = x.shape
-        coef = self.branch_head(self.branch(x).flatten(1))   # (B, p)
+        coef = self.branch_head(self.branch(x).flatten(1))    # (B, p*c_out)
+        coef = coef.view(b, self.c_out, self.p)               # (B, C, p)
         basis = self.trunk(self._coords(h, w, x.device))      # (H*W, p)
-        out = torch.einsum("bp,np->bn", coef, basis) + self.bias
-        return out.reshape(b, h, w)
+        out = torch.einsum("bcp,np->bcn", coef, basis)        # (B, C, H*W)
+        out = out + self.bias.view(1, self.c_out, 1)
+        out = out.reshape(b, self.c_out, h, w)
+        return out.squeeze(1) if self.c_out == 1 else out
 
 
 class PerPixelGRU(nn.Module):
