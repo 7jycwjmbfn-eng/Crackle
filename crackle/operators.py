@@ -178,6 +178,51 @@ NEURAL = {"mlp_pixel": MLPPixel, "fno": FNO2d, "deeponet": DeepONet,
           "convnet": ConvNet}
 
 
+# --------------------- crackle: topology-aware forecaster ------------------
+
+class GraphForecaster(nn.Module):
+    """The 'crackle' competitor for Phase 4: predicts the per-NODE damage
+    increment by message passing on the native peridynamic BOND GRAPH, given
+    the same information the grid operators get (current damage d_t and static
+    toughness g). No rasterization — connectivity IS the representation, so a
+    crack front advances along bonds, not across a Cartesian grid the operator
+    has to resample onto. Static edge attributes (toughness, rest length)
+    enter the message, so the model knows where bonds are weak.
+
+    Batched over the S time-snapshots of ONE case at a time (the bond graph is
+    constant within a case), so a whole movie is one forward pass.
+
+    forward(node_x (S,N,Fn), edge_x (M,Fe), bonds (M,2)) -> increment (S,N).
+    """
+
+    def __init__(self, f_node: int = 2, f_edge: int = 2, d: int = 64,
+                 rounds: int = 4):
+        super().__init__()
+        self.rounds = rounds
+        self.node_in = nn.Linear(f_node, d)
+        self.edge_in = nn.Linear(f_edge, d)
+        self.msg = nn.ModuleList(
+            [nn.Sequential(nn.Linear(3 * d, d), nn.GELU()) for _ in range(rounds)])
+        self.node_upd = nn.ModuleList(
+            [nn.Sequential(nn.Linear(2 * d, d), nn.GELU()) for _ in range(rounds)])
+        self.head = nn.Sequential(nn.Linear(d, d), nn.GELU(), nn.Linear(d, 1))
+
+    def forward(self, node_x: torch.Tensor, edge_x: torch.Tensor,
+                bonds: torch.Tensor) -> torch.Tensor:
+        s, n, _ = node_x.shape
+        src, dst = bonds[:, 0], bonds[:, 1]
+        h = self.node_in(node_x)                       # (S, N, d)
+        e = self.edge_in(edge_x).unsqueeze(0).expand(s, -1, -1)  # (S, M, d)
+        for r in range(self.rounds):
+            hi, hj = h[:, src, :], h[:, dst, :]        # (S, M, d)
+            m = self.msg[r](torch.cat([hi, hj, e], dim=-1))      # (S, M, d)
+            agg = torch.zeros_like(h)
+            agg.index_add_(1, src, m)
+            agg.index_add_(1, dst, m)                  # undirected bonds
+            h = h + self.node_upd[r](torch.cat([h, agg], dim=-1))
+        return self.head(h).squeeze(-1)                # (S, N) pre-relu
+
+
 # ----------------------------- rollout helpers -----------------------------
 
 def neural_step(model: nn.Module, d_t: torch.Tensor, g: torch.Tensor,

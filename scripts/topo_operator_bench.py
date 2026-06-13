@@ -111,6 +111,12 @@ def topo_fidelity(pred: np.ndarray, true: np.ndarray, sig_tau: float):
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, required=True)
+    parser.add_argument("--eval-dataset", type=Path, default=None,
+                        help="If set, train on --dataset and evaluate on this "
+                             "genuinely-new dataset (true OOD). All of its "
+                             "cases form the test set; no case from it is ever "
+                             "trained on, and normalization stats come only "
+                             "from --dataset.")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--key", type=str, default="damage")
     parser.add_argument("--seeds", type=int, nargs="*", default=[0, 1, 2])
@@ -131,31 +137,43 @@ def main(argv: list[str] | None = None) -> int:
     from crackle.operators import NEURAL, neural_step
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
-    movies = load_movies(args.dataset, key=args.key)
-    print(f"{len(movies)} solved-PD cases; grid {movies[0][0].shape[1:]}; "
-          f"device {device}", flush=True)
-    rng0 = np.random.default_rng(0)
-    idx = rng0.permutation(len(movies))
-    n_test = max(1, int(args.test_frac * len(movies)))
-    test_ids, train_ids = idx[:n_test], idx[n_test:]
+    all_movies = load_movies(args.dataset, key=args.key)
+    if args.eval_dataset is not None:
+        # true OOD: every train case from --dataset, every test case from the
+        # never-seen --eval-dataset. No overlap is possible by construction.
+        train_movies = all_movies
+        test_movies = load_movies(args.eval_dataset, key=args.key)
+        split = "ood"
+    else:
+        rng0 = np.random.default_rng(0)
+        idx = rng0.permutation(len(all_movies))
+        n_te = max(1, int(args.test_frac * len(all_movies)))
+        test_movies = [all_movies[i] for i in idx[:n_te]]
+        train_movies = [all_movies[i] for i in idx[n_te:]]
+        split = "heldout"
+    n_test = len(test_movies)
+    print(f"{len(all_movies)} cases in --dataset; split={split}; "
+          f"train {len(train_movies)} / test {n_test}; "
+          f"train grid {train_movies[0][0].shape[1:]} / "
+          f"test grid {test_movies[0][0].shape[1:]}; device {device}",
+          flush=True)
 
-    # toughness standardization on train
-    g_all = np.stack([movies[i][1] for i in train_ids])
+    # toughness standardization on TRAIN ONLY (never touches test statistics)
+    g_all = np.stack([g for _, g in train_movies])
     g_mean, g_std = float(g_all.mean()), float(g_all.std() + 1e-6)
 
     def gten(g):
         return torch.as_tensor((g - g_mean) / g_std, device=device)
 
     # ---- training pairs (d_t, g) -> d_{t+1} from train cases ----
-    def make_pairs(ids):
+    def make_pairs(movie_list):
         dt, dn, gg = [], [], []
-        for i in ids:
-            d, g = movies[i]
+        for d, g in movie_list:
             dt.append(d[:-1]); dn.append(d[1:])
             gg.append(np.broadcast_to(g, d[:-1].shape))
         return (np.concatenate(dt), np.concatenate(dn), np.concatenate(gg))
 
-    tr_dt, tr_dn, tr_g = make_pairs(train_ids)
+    tr_dt, tr_dn, tr_g = make_pairs(train_movies)
     tr_dt = torch.as_tensor(tr_dt, device=device)
     tr_dn = torch.as_tensor(tr_dn, device=device)
     tr_g = torch.as_tensor((tr_g - g_mean) / g_std, device=device)
@@ -183,8 +201,7 @@ def main(argv: list[str] | None = None) -> int:
     def eval_model(step_fn):
         per_h = {h: {"rel_l2": [], "bottleneck": [], "b0_err": []}
                  for h in args.horizons}
-        for i in test_ids:
-            d, g = movies[i]
+        for d, g in test_movies:
             T = d.shape[0]
             t0 = int(args.t0_frac * T)
             hmax = max(args.horizons)
@@ -218,11 +235,16 @@ def main(argv: list[str] | None = None) -> int:
         return [np.clip(d0 + (k + 1) * rate, 0.0, 1.0) for k in range(hmax)]
 
     inc_mean = (tr_dn - tr_dt).clamp(min=0).mean(dim=0).cpu().numpy()
+    inc_scalar = float(inc_mean.mean())  # OOD-safe: grids may differ
 
     def meanrate_roll(d, g, t0, hmax):
+        # use the learned spatial mean increment when the test grid matches the
+        # train grid; otherwise (true OOD) fall back to a scalar mean rate so
+        # the baseline is still a real contender on the new geometry.
+        inc = inc_mean if d.shape[1:] == inc_mean.shape else inc_scalar
         out = []; d_t = d[t0].copy()
         for _ in range(hmax):
-            d_t = np.clip(d_t + inc_mean, 0.0, 1.0); out.append(d_t.copy())
+            d_t = np.clip(d_t + inc, 0.0, 1.0); out.append(d_t.copy())
         return out
 
     for name, fn in (("persistence", persistence_roll),
@@ -259,8 +281,11 @@ def main(argv: list[str] | None = None) -> int:
     df = pd.DataFrame(rows)
     df.to_csv(args.out / "operator_results.csv", index=False)
     write_json(args.out / "config.json", {
-        "dataset": str(args.dataset), "n_cases": len(movies),
-        "n_test": n_test, "horizons": args.horizons, "epochs": args.epochs,
+        "dataset": str(args.dataset),
+        "eval_dataset": str(args.eval_dataset) if args.eval_dataset else None,
+        "split": split, "n_train": len(train_movies), "n_test": n_test,
+        "horizons": args.horizons, "epochs": args.epochs,
+        "g_mean": g_mean, "g_std": g_std,
         "git_commit": _git_commit(Path(__file__).resolve().parents[1]),
         "wall_s": round(time.perf_counter() - started, 1)})
     print(json.dumps({"out": str(args.out), "rows": len(rows)}))
