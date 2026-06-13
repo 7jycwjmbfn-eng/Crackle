@@ -15,6 +15,7 @@ individual reports referenced below.
 | Phase 1.2 matching | DONE — optimal assignment; greedy disagreement ~0.3% | same |
 | Phase 1.3 catalog + risk sets [KILL RULE 1] | **PASS** (0.407 ev/step) | topo_phase1_catalog_audit_20260611.md |
 | Phase 2.1 causal onset | DONE — selectivity-crossover result | topo_phase2_causal_onset_20260611.md |
+| Phase 2.1 noise robustness [pre-registered] | **PASS (qualified)** — topo leads control at matched FA under noise, all 3 σ; cum_events fails | topo_phase2_onset_noise_20260612.md |
 | Phase 2.2 tabular ablation [pre-registered] | **PASS** | topo_phase2_hazard_20260611.md |
 | Track A neural TPP [pre-registered] | **PASS** (with OOD count caveat) | topo_phase2_track_a_20260611.md |
 | Track B learned vectorization [pre-registered] | **FAIL — negative readout** | topo_phase2_track_b_20260611.md |
@@ -33,12 +34,20 @@ individual reports referenced below.
    collapse 23 → 5 steps under ROI; died-interior events were
    contaminated by boundary-born features (−32…−47%); genuine interior
    births were being swallowed by boundary matches.
-3. CAUSAL PRECURSOR CLAIM, QUALIFIED. Under acceleration-selective
-   causal detection at matched scale-free settings, topological signals
-   alarm in ≥93% of cases with median leads 23–37 steps before t*; the
-   macroscopic control detects ≤20% of cases there, and its earlier
-   alarms at permissive settings are ramp-following (97.6% within 3
-   steps of growth onset; no timing content).
+3. CAUSAL PRECURSOR CLAIM, QUALIFIED — AND NOW NOISE-TESTED. Under
+   acceleration-selective causal detection at matched scale-free
+   settings, topological signals alarm in ≥93% of cases with median
+   leads 23–37 steps before t*; the macroscopic control detects ≤20% of
+   cases there. Under DIC-like measurement noise (σ up to/above sig_tau)
+   with a conservative instability-referenced false-alarm definition,
+   the instantaneous persistence signal total_pers_h0 still beats the
+   macroscopic control at MATCHED false-alarm rate on all three noise
+   levels (median lead 12 vs 5/11.5/10 steps; 2–13× higher detection
+   rate), under the rolling-z detector. Honest limits: the cumulative
+   event count fails under noise; the advantage is detector-specific
+   (CUSUM cannot make the macroscopic control selective at low noise);
+   absolute detection rates are low. This is the strengthening the
+   earlier degenerate-FA result needed.
 4. TOPOLOGICAL FEATURES IMPROVE HAZARD FORECASTING. Pre-registered
    PASS: local+topo+history > local+topo > local on test NLL and top-1%
    recall, every horizon {3,5,10}, GBM and logistic, margins 2–3 orders

@@ -37,6 +37,11 @@ xgboost matplotlib`;Track A/B 另需 torch(cu128)。TDA 全程 CPU。
 - Phase 2.1:选择性交叉——加速度选择性设置下拓扑信号在 ≥93% case
   报警、中位 lead 23–37 步,total_damage 对照 ≤20%(预注册 2/3 达标);
   宽松设置下对照的"先报警"是斜坡跟随(97.6% 紧贴 growth start)。
+- Phase 2.1 噪声鲁棒性(预注册,有条件 PASS):DIC 式测量噪声下,瞬时
+  持久度信号 total_pers_h0 在**相同误报率**下仍胜宏观对照(三个噪声档,
+  中位 lead 12 vs 5/11.5/10,检测率高 2–13×,z 探测器)。诚实负结果:
+  累积事件计数 cum_events 在噪声下失败;优势依赖探测器。详见
+  topo_phase2_onset_noise_20260612.md。
 - Phase 2.2 表格消融:预注册 PASS——(c)>(b)>(a) 全 horizon,OOD 保持。
 - Track A:预注册 PASS——THP 胜参数 Hawkes(test 全 4 项 LL);
   OOD 下 count 项退化(诚实警示)。KS 检验在多数 case 拒绝两个模型。
