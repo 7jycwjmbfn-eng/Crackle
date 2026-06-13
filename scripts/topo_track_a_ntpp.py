@@ -92,6 +92,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--seeds", type=int, nargs="*", default=[0, 1, 2])
     parser.add_argument("--epochs", type=int, default=12)
+    parser.add_argument("--models", type=str, nargs="*",
+                        default=["rmtpp", "nhp", "thp"],
+                        choices=["rmtpp", "nhp", "thp"],
+                        help="neural TPP encoders to benchmark (referee Hawkes "
+                             "always included)")
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--noise-sigma", type=float, default=0.0,
                         help="apply measurement noise to the curve covariates "
@@ -274,43 +279,46 @@ def main(argv: list[str] | None = None) -> int:
             "n_events": n_ev,
         }
 
+    from crackle.topo.tpp_baselines import BASELINES
+
+    name_map = {"rmtpp": "rmtpp", "nhp": "nhp", "thp": "discrete_thp"}
     rows = list(referee_rows)
     started = time.perf_counter()
-    for seed in args.seeds:
-        torch.manual_seed(seed)
-        np.random.seed(seed)
-        model = DiscreteTHP(config).to(device)
-        opt = torch.optim.AdamW(model.parameters(), lr=config.lr)
-        best_val, best_state = -np.inf, None
-        order = list(train_cases)
-        for epoch in range(config.epochs):
-            model.train()
-            rng = np.random.default_rng(seed * 1000 + epoch)
-            rng.shuffle(order)
-            total = 0.0
-            for i in range(0, len(order), config.batch_cases):
-                batch = make_batch(order[i : i + config.batch_cases])
-                ll = case_log_likelihood(model, batch)
-                loss = -(ll["count"] + ll["kind"] + ll["tile"]) \
-                    / batch["counts"].shape[0]
-                opt.zero_grad()
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
-                opt.step()
-                total += float(loss)
-            val = eval_split(model, splits["val"])["ll_total_per_case"]
-            print(f"seed {seed} epoch {epoch}: train loss {total:.1f} "
-                  f"val LL/case {val:.2f}", flush=True)
-            if val > best_val:
-                best_val = val
-                best_state = {k: v.detach().clone()
-                              for k, v in model.state_dict().items()}
-        model.load_state_dict(best_state)
-        for split in ("test", "ood", "val"):
-            rows.append({"model": "discrete_thp", "seed": seed,
-                         "split": split, **eval_split(model, splits[split])})
-        print(f"seed {seed} done ({time.perf_counter()-started:.0f}s)",
-              flush=True)
+    for mkey in args.models:
+        ModelCls = BASELINES[mkey]
+        for seed in args.seeds:
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+            model = ModelCls(config).to(device)
+            opt = torch.optim.AdamW(model.parameters(), lr=config.lr)
+            best_val, best_state = -np.inf, None
+            order = list(train_cases)
+            for epoch in range(config.epochs):
+                model.train()
+                rng = np.random.default_rng(seed * 1000 + epoch)
+                rng.shuffle(order)
+                total = 0.0
+                for i in range(0, len(order), config.batch_cases):
+                    batch = make_batch(order[i : i + config.batch_cases])
+                    ll = case_log_likelihood(model, batch)
+                    loss = -(ll["count"] + ll["kind"] + ll["tile"]) \
+                        / batch["counts"].shape[0]
+                    opt.zero_grad()
+                    loss.backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+                    opt.step()
+                    total += float(loss)
+                val = eval_split(model, splits["val"])["ll_total_per_case"]
+                if val > best_val:
+                    best_val = val
+                    best_state = {k: v.detach().clone()
+                                  for k, v in model.state_dict().items()}
+            model.load_state_dict(best_state)
+            for split in ("test", "ood", "val"):
+                rows.append({"model": name_map[mkey], "seed": seed,
+                             "split": split, **eval_split(model, splits[split])})
+            print(f"{mkey} seed {seed} done val_LL {best_val:.2f} "
+                  f"({time.perf_counter()-started:.0f}s)", flush=True)
 
     res = pd.DataFrame(rows)
     res.to_csv(args.out / "track_a_results.csv", index=False)
