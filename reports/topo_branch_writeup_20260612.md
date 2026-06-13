@@ -159,6 +159,29 @@ public registry leads (KTH, craquelure, desiccation, Rimkus) were
 inspected and lack per-frame crack FIELD data — Rimkus's authors were
 emailed for the DIC field exports.
 
+### 4.1 Solved-mechanics cross-check (addresses the kinematic-proxy caveat)
+
+To test whether the h0 nucleation grammar is an artifact of the kinematic
+proxy, we ran the audit on **solved peridynamics** damage fields (the
+gaussmoe dense-PD archive; `load_case_npz` now reads `reference_x`):
+- single-notch dense-PD (8 cases, 71×29, damage→1.0): **0 significant
+  events** — a single propagating crack is one growing component with no
+  nucleation or loops. This confirms the "single crack is topologically
+  trivial" boundary in *solved* mechanics, not just the kinematic proxy.
+- heterogeneous hard-bench (16 cases, 103×40, toughness contrast 1.7):
+  h0_born events DO appear in every case, and scale with crack branching
+  — `branching_candidate` cases show 3 h0_born vs `arrest_candidate`
+  cases' 1 (more crack tips → more nucleation, the topological reading's
+  physical prediction). But they are sparse (mean 2.5 events/case, no H1
+  loops) because these are few-crack, mildly-heterogeneous scenarios.
+
+Takeaway: the h0_born nucleation grammar is **not** a kinematic-proxy
+artifact (it appears in solved PD and scales sensibly with branching);
+the *rich* grammar (H1 loops, coalescence cascades, dense event streams)
+requires many simultaneous cracks — which the multi-notch synthetic world
+and the real RC slab provide, but these few-crack solved-PD benchmarks do
+not.
+
 ## 5. Consolidated claim boundary
 
 **Allowed.** On a synthetic multi-notch kinematic world: a dense,
