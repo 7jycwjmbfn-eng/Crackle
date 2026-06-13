@@ -18,9 +18,9 @@ individual reports referenced below.
 | Phase 2.2 tabular ablation [pre-registered] | **PASS** | topo_phase2_hazard_20260611.md |
 | Track A neural TPP [pre-registered] | **PASS** (with OOD count caveat) | topo_phase2_track_a_20260611.md |
 | Track B learned vectorization [pre-registered] | **FAIL — negative readout** | topo_phase2_track_b_20260611.md |
-| Track C bond-graph GNN | NOT RUN (optional; A/B consumed the budget) | — |
+| Track C bond-graph GNN [pre-registered] | **PASS 3/3** — −35…−58% NLL vs strong referee, strengthens OOD | topo_phase2_track_c_20260611.md |
 | Phase 3.1 DLR robustness | BLOCKED (no DLR run artifacts on this machine) | topo_phase3_realdata_20260611.md |
-| Phase 3.2 real multi-crack data | BLOCKED (all 3 API leads failed content inspection) | same |
+| Phase 3.2 real multi-crack data | INSPECTED — Rimkus retrieved (load–strain curves, not crack fields); no field data in any public source | same |
 
 ## What the branch now claims (synthetic multi-notch kinematic world only)
 
@@ -43,14 +43,20 @@ individual reports referenced below.
    PASS: local+topo+history > local+topo > local on test NLL and top-1%
    recall, every horizon {3,5,10}, GBM and logistic, margins 2–3 orders
    above seed std; ordering survives the held-out 4-notch OOD stratum.
-5. NEURAL TPP BEATS PARAMETRIC HAWKES. Pre-registered PASS on all LL
-   components in-distribution; mark prediction (kind 0.51 vs 0.38 acc)
-   is the main gain. Honest caveats: count intensity loses to the
+5. NEURAL TPP BEATS PARAMETRIC HAWKES (Track A). Pre-registered PASS on
+   all LL components in-distribution; mark prediction (kind 0.51 vs 0.38
+   acc) is the main gain. Honest caveats: count intensity loses to the
    referee OOD; time-rescaling KS rejects both models in most cases.
-6. LEARNED DIAGRAM VECTORIZATION DOES NOT HELP (NEGATIVE). PersLay-style
-   and fixed persistence images do not beat the hand-crafted Phase-0
-   scalar summaries under a matched protocol — the scalar curves remain
-   the default representation.
+6. LEARNED DIAGRAM VECTORIZATION DOES NOT HELP (Track B, NEGATIVE).
+   PersLay-style and fixed persistence images do not beat the
+   hand-crafted Phase-0 scalar summaries under a matched protocol — the
+   scalar curves remain the default representation.
+7. BOND-GRAPH GNN BEATS TABULAR REFEREE (Track C, strongest positive).
+   Pre-registered PASS 3/3: message passing on the native peridynamic
+   bond graph cuts per-bond hazard NLL 35–58% vs a GBM given the same
+   features plus one-hop aggregates; the advantage STRENGTHENS on the
+   held-out 4-notch geometry — the cleanest positive transfer in the
+   branch.
 
 ## What the branch does NOT claim
 
@@ -63,9 +69,13 @@ individual reports referenced below.
 
 ## Next actions (in spec order)
 
-1. Manually retrieve Rimkus & Gribniak DiB supplement
-   (doi:10.1016/j.dib.2017.05.038) → loader → rerun Phase 0/1 audits
-   (Phase 3.2 priority 1).
+1. Rimkus RC ties: public supplement is load–strain curves, not crack
+   fields (now confirmed). To run the topological pipeline on it, request
+   the original DIC field exports from the authors; alternatively use the
+   retrieved curves as a real scalar control signal for an onset-only
+   check (no topology).
 2. Restore/regenerate DLR UNet mask artifacts → §3.1 bottleneck-distance
    robustness check.
-3. Optional Track C (bond-graph GNN) if the frontier line continues.
+3. Frontier line complete (Tracks A/B/C all run). Optional extensions:
+   per-kind NTPP intensities to fix the KS goodness-of-fit; GNN on a
+   larger bond dataset (current Track C used 400 cases).

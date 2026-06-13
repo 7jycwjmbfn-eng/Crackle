@@ -1,4 +1,4 @@
-# Topo Phase 3 — real-data status readout (dataset inspection)
+# Topo Phase 3 — real-data status readout (datasets retrieved + inspected)
 
 Date: 2026-06-11. Branch: topo-tda. Spec: crackle_tda_spec.md §3 +
 addendum v1.1 A item 3 ("INSPECT each dataset's actual content before
@@ -6,41 +6,62 @@ writing loaders; registry descriptions are leads, not guarantees").
 
 ## 3.1 DLR robustness check — BLOCKED on this machine
 
-The check needs fine-tuned UNet path masks from the existing DLR pipeline
-(`crackle.eval.dlr_cnn_spatial_validation` outputs). No `runs/` artifacts
-exist in this clone (run outputs are .gitignored by policy) and the DLR
-raw data is not present. Deferred until the original run artifacts are
-restored or the pipeline is re-run. No claim is made.
+Needs fine-tuned UNet path masks from
+`crackle.eval.dlr_cnn_spatial_validation`. No `runs/` artifacts in this
+clone (run outputs are .gitignored) and the DLR raw data is absent.
+Deferred until those artifacts are restored or the pipeline is re-run.
+No claim made.
 
-## 3.2 Multi-crack real data — registry inspection results
+## 3.2 Multi-crack real data — four sources retrieved and inspected
 
-All three API-fetchable registry entries were downloaded and inspected
-(`external_datasets/`, not committed). All three FAIL content inspection
-for the movie-loader purpose:
+All downloads in `external_datasets/` (not committed; .gitignored). The
+addendum's warning is confirmed empirically: the registry descriptions
+were leads, and none of the retrieved sources provides a per-frame 2D
+crack/damage FIELD, which is what the (T, ny, nx) movie contract needs.
 
-| dataset | content found | verdict |
+| dataset | retrieved content | usable as movie? |
 |---|---|---|
-| kth_dic_concrete (Mendeley dns97tfdjn) | paper PDF (2 MB) + lab-test xlsx; latest version IS v1 | DIC image series NOT in the record; need companion record or author contact |
-| craquelure_paintings (Zenodo 17862067) | FEM figure data (.dat: stress along diagonals vs RH drops) | simulation curves, not crack-network imagery; unusable as a pattern-topology testbed |
-| desiccation_slope (Zenodo 10199729) | 2 DPM simulation .avi + COMSOL .mph | simulation movies, not desiccation crack time-lapse |
+| **Rimkus & Gribniak RC ties** (DiB 2017, priority 1) | obtained via EuropePMC supplementary package: 22-specimen load–strain curves (P[kN], mean concrete strain εc, mean steel strain εs; 4792 rows in mmc2.xlsx "Appendix A"), specimen-geometry + rig figures (gr1/gr2), supplement PDF | **NO** — 1D load–strain curves, not 2D fields. The DIC crack-development schemes are raster figures embedded in the article's Table 3, not extractable per-frame field data |
+| kth_dic_concrete (Mendeley) | paper PDF + lab-test xlsx only | NO — DIC image series not in the record |
+| craquelure_paintings (Zenodo) | FEM stress-vs-RH figure data (.dat) | NO — simulation curves, not crack imagery |
+| desiccation_slope (Zenodo) | DPM simulation .avi + COMSOL .mph | NO — simulation movies |
 
-The addendum's warning is confirmed empirically: none of the three
-registry leads contains what its description suggested.
+### What the Rimkus retrieval DOES establish
 
-## Path forward (unchanged priority order)
+Progress beyond the prior "BLOCKED, not retrieved" state: the priority-1
+dataset was located (EuropePMC OA supplementary endpoint, not the
+publisher paywall) and its true content is now documented. The public
+Rimkus release supports **scalar load–response analysis** (and could feed
+the macroscopic-instability/onset side of the pipeline as a real
+load–strain control signal), but NOT the topological event pipeline,
+which is field-based. Extracting topology from this study would require
+the original DIC displacement/strain FIELD exports, which are not in the
+public supplement — author contact or the LaVision project files would
+be needed.
 
-1. Rimkus & Gribniak RC ties (Data in Brief 2017,
-   doi:10.1016/j.dib.2017.05.038) — manual download of the article
-   supplement from the DOI landing page; remains priority 1 and is the
-   intended first loader target (expect h0_born-dominated sequential
-   transverse cracking).
-2. KTH: locate the companion image-series record (the PDF references the
-   full test series) or contact authors.
-3. arXiv:2411.04620 RC slab — availability still unverified.
+## Honest verdict
+
+The synthetic-world results (Phases 1–2, Tracks A/C positive, B negative)
+stand on their own. Real multi-crack FIELD data is not obtainable from
+the public API/OA sources inspected here; the registry's most promising
+lead (Rimkus) publishes load–strain curves, not crack fields. Real-data
+topological validation remains open and now has a precise blocker:
+per-frame DIC field exports, not summary curves.
+
+## Path forward (unchanged priority, sharpened)
+
+1. Rimkus: request the original DIC field exports from the authors, OR
+   use the retrieved load–strain curves as a real control signal for a
+   scalar-only onset check (no topology).
+2. KTH: locate the companion image-series record referenced by the PDF.
+3. Restore DLR UNet mask artifacts for §3.1.
 
 ## Claim boundary
 
-Allowed: "the public API-fetchable leads in the current registry do not
-contain usable multi-crack movie data; real-data validation requires
-manual supplement retrieval." Nothing else — no topological claim about
-real data is licensed by this phase in its current state.
+Allowed: "Public API/OA sources for the registry's multi-crack datasets,
+including the priority-1 Rimkus RC ties, do not contain per-frame crack-
+FIELD data; the Rimkus public release is load–strain curves. Real-data
+topological validation requires DIC field exports not in those releases."
+
+Not allowed: any topological claim about real data (no field data was
+obtained); any transfer of the synthetic findings to real specimens.

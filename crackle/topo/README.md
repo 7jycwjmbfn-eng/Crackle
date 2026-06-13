@@ -40,8 +40,12 @@ xgboost matplotlib`;Track A/B 另需 torch(cu128)。TDA 全程 CPU。
 - Phase 2.2 表格消融:预注册 PASS——(c)>(b)>(a) 全 horizon,OOD 保持。
 - Track A:预注册 PASS——THP 胜参数 Hawkes(test 全 4 项 LL);
   OOD 下 count 项退化(诚实警示)。KS 检验在多数 case 拒绝两个模型。
-- Phase 3:三个 API 数据源内容检查全部不符(详见 phase3 报告);
-  Rimkus DiB 补充材料为人工获取优先级 1。
+- Track B:预注册 FAIL = 负结果——PersLay/固定 PI 不敌手工标量曲线。
+- Track C:预注册 PASS 3/3(最强)——键图 GNN 比同特征+一跳聚合的 GBM
+  裁判低 35–58% NLL,OOD 下优势反而扩大。
+- Phase 3:四个公开源已检索并检查;Rimkus(优先级 1)实际拿到 =
+  load-strain 标量曲线 + 单帧 DIC 图,非逐帧场,做不出 movie;
+  真实数据拓扑验证仍开放,缺口明确为 DIC 逐帧场导出。
 
 ## Claim boundary(合成世界)
 
