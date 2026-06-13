@@ -10,18 +10,35 @@ ground-truth simulation, because in deployment you score a noisy detector
 against the true failure time. The control total_damage is recomputed
 from the SAME noisy field, so neither side is privileged.
 
-PRE-REGISTERED QUESTION (fixed before running; see git history of this
-file): under measurement noise that lifts the control's false-alarm rate
-off zero, at MATCHED false-alarm rate, does at least one topological
-precursor signal achieve a strictly longer median lead than total_damage
-on >= 2 of the 3 noise levels {0.02, 0.05, 0.10}? A "no" is a real,
-reportable negative (the noiseless lead was an artifact of zero noise).
+Event / false-alarm definition (CORRECTED after the first smoke run --
+see git history). The kinematic world loads monotonically, so damage
+grows from step ~2 and the original "alarm before growth_start" false-
+alarm definition was degenerate (no quiet pre-growth window; FA stuck at
+0 with or without noise). The meaningful event is the INSTABILITY t*
+(argmax damage increment). We therefore score each detector's FIRST alarm
+at step t_a against a warning window W:
+  - premature (t* - t_a > W)  -> FALSE ALARM (fired during routine
+        sub-critical loading, not tracking the impending instability);
+        its apparent "lead" is NOT credited
+  - useful   (0 <= t* - t_a <= W) -> detection, lead = t* - t_a
+  - late     (t_a > t*)        -> miss
+This penalizes early noise-firing as a false alarm rather than rewarding
+it as a long lead, so it cannot be gamed by lowering the threshold under
+noise. W is swept over {15, 25, 40}.
+
+PRE-REGISTERED QUESTION (the scientific question is unchanged from the
+committed v1; only the degenerate FA reference was fixed): under
+measurement noise that lifts the control's false-alarm rate off zero, at
+MATCHED false-alarm rate, does at least one topological precursor signal
+achieve a strictly longer median useful lead than total_damage on >= 2 of
+the 3 noise levels {0.02, 0.05, 0.10}? A "no" is a real, reportable
+negative.
 
 Comparison method: rolling-z and standardized CUSUM are scale-free, so a
 "matched false-alarm rate" is realized by reading each signal's lead at
 the detector threshold whose measured FA rate is closest to a shared
-target FA from below, then comparing median leads of non-false alarms.
-Both topo and control use the identical detector and FA target.
+target FA from below, then comparing median useful leads. Both topo and
+control use the identical detector, warning window, and FA target.
 
 Outputs under --out:
   per_case.parquet     (case, sigma, signal, detector, threshold) rows
@@ -47,6 +64,7 @@ from crackle.experiments.hetero_pinning import _git_commit
 from crackle.topo.catalog import RiskSetConfig, case_events_and_curves
 from crackle.topo.causal_onset import evaluate_case
 from crackle.topo.events import event_count_curves
+from crackle.topo.instability import instability_step
 from crackle.topo.noise import add_measurement_noise
 
 Z_THRESHOLDS = (1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0, 6.0, 8.0, 10.0)
@@ -78,8 +96,9 @@ def _one_case(case_id: str) -> list[dict[str, Any]]:
     config = RiskSetConfig(**_W["config"])
     data = np.load(Path(_W["dataset"]) / "shards" / f"{case_id}.npz")
     clean = data["movie_u8"].astype(np.float64) / 255.0
-    # ground-truth failure reference from the CLEAN field
+    # ground-truth failure time from the CLEAN field
     clean_damage = clean.reshape(clean.shape[0], -1).sum(axis=1)
+    t_star = instability_step(clean_damage)
     case_seed = int(case_id.split("_")[-1])
     rows: list[dict[str, Any]] = []
     for s_i, sigma in enumerate(_W["sigmas"]):
@@ -98,11 +117,21 @@ def _one_case(case_id: str) -> list[dict[str, Any]]:
                         "case_id": case_id, "sigma": sigma, "signal": name,
                         "detector": detector, "threshold": thr,
                         "first_alarm": -1 if ev.first_alarm is None
-                        else ev.first_alarm,
-                        "false_alarm": bool(ev.is_false_alarm),
-                        "lead": np.nan if ev.lead is None else float(ev.lead),
+                        else int(ev.first_alarm),
+                        "t_star": int(t_star),
                     })
     return rows
+
+
+def _classify(df: pd.DataFrame, warn_window: int) -> pd.DataFrame:
+    """Add false_alarm / detected / lead columns for a warning window W."""
+    out = df.copy()
+    alarmed = out["first_alarm"] >= 0
+    gap = out["t_star"] - out["first_alarm"]
+    out["false_alarm"] = alarmed & (gap > warn_window)      # premature
+    out["detected"] = alarmed & (gap >= 0) & (gap <= warn_window)
+    out["lead"] = np.where(out["detected"], gap.astype(float), np.nan)
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -120,6 +149,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seed", type=int, default=20260612)
     parser.add_argument("--fa-targets", type=float, nargs="*",
                         default=[0.05, 0.10, 0.20])
+    parser.add_argument("--warn-windows", type=int, nargs="*",
+                        default=[15, 25, 40])
     parser.add_argument("--only-hetero", action="store_true",
                         help="drop contrast<=1.5 cases (trivial topology)")
     args = parser.parse_args(argv)
@@ -151,64 +182,69 @@ def main(argv: list[str] | None = None) -> int:
     df = pd.DataFrame(all_rows)
     df.to_parquet(args.out / "per_case.parquet", index=False)
 
-    sweep = (df.groupby(["sigma", "signal", "detector", "threshold"])
-             .agg(fa_rate=("false_alarm", "mean"),
-                  alarm_rate=("first_alarm", lambda s: float((s >= 0).mean())),
-                  median_lead=("lead", "median"),
-                  n_valid_lead=("lead", "count"))
-             .reset_index())
-    sweep.to_csv(args.out / "fa_sweep.csv", index=False)
+    sweeps, matched = [], []
+    for W in args.warn_windows:
+        cls = _classify(df, W)
+        sweep = (cls.groupby(["sigma", "signal", "detector", "threshold"])
+                 .agg(fa_rate=("false_alarm", "mean"),
+                      detect_rate=("detected", "mean"),
+                      median_lead=("lead", "median"),
+                      n_detected=("detected", "sum"))
+                 .reset_index())
+        sweep["warn_window"] = W
+        sweeps.append(sweep)
 
-    # matched-FA duel: per (sigma, detector, FA target), pick each signal's
-    # threshold with FA closest to the target from below, compare leads.
-    def pick(sigma, sig, det, target):
-        sub = sweep[(sweep.sigma == sigma) & (sweep.signal == sig)
-                    & (sweep.detector == det)]
-        below = sub[sub.fa_rate <= target]
-        cand = below if len(below) else sub
-        if not len(cand):
-            return None
-        ref = target if len(below) else cand.fa_rate.min()
-        return cand.loc[(cand.fa_rate - ref).abs().idxmin()]
+        def pick(sigma, sig, det, target):
+            sub = sweep[(sweep.sigma == sigma) & (sweep.signal == sig)
+                        & (sweep.detector == det)]
+            below = sub[sub.fa_rate <= target]
+            cand = below if len(below) else sub
+            if not len(cand):
+                return None
+            ref = target if len(below) else cand.fa_rate.min()
+            return cand.loc[(cand.fa_rate - ref).abs().idxmin()]
 
-    matched = []
-    for sigma in args.sigmas:
-        for det in ("z", "cusum"):
-            for target in args.fa_targets:
-                ctrl = pick(sigma, CONTROL, det, target)
-                if ctrl is None:
-                    continue
-                ctrl_rows = df[(df.sigma == sigma) & (df.signal == CONTROL)
-                               & (df.detector == det)
-                               & (df.threshold == ctrl.threshold)
-                               ].set_index("case_id")
-                for sig in TOPO_SIGNALS:
-                    p = pick(sigma, sig, det, target)
-                    if p is None:
+        for sigma in args.sigmas:
+            for det in ("z", "cusum"):
+                for target in args.fa_targets:
+                    ctrl = pick(sigma, CONTROL, det, target)
+                    if ctrl is None:
                         continue
-                    topo_rows = df[(df.sigma == sigma) & (df.signal == sig)
-                                   & (df.detector == det)
-                                   & (df.threshold == p.threshold)
-                                   ].set_index("case_id")
-                    j = topo_rows.join(ctrl_rows, lsuffix="_t", rsuffix="_c")
-                    tl, cl = j["lead_t"], j["lead_c"]
-                    wins = ((tl > cl) & tl.notna() & cl.notna()
-                            | (tl.notna() & cl.isna()))
-                    losses = ((tl < cl) & tl.notna() & cl.notna()
-                              | (cl.notna() & tl.isna()))
-                    decided = int(wins.sum() + losses.sum())
-                    matched.append({
-                        "sigma": sigma, "detector": det, "fa_target": target,
-                        "signal": sig,
-                        "fa_topo": float(p.fa_rate), "fa_ctrl": float(ctrl.fa_rate),
-                        "median_lead_topo": float(p.median_lead),
-                        "median_lead_ctrl": float(ctrl.median_lead),
-                        "win_frac": float(wins.sum() / decided)
-                        if decided else np.nan,
-                        "n_decided": decided,
-                    })
+                    cr = cls[(cls.sigma == sigma) & (cls.signal == CONTROL)
+                             & (cls.detector == det)
+                             & (cls.threshold == ctrl.threshold)
+                             ].set_index("case_id")
+                    for sig in TOPO_SIGNALS:
+                        p = pick(sigma, sig, det, target)
+                        if p is None:
+                            continue
+                        tr = cls[(cls.sigma == sigma) & (cls.signal == sig)
+                                 & (cls.detector == det)
+                                 & (cls.threshold == p.threshold)
+                                 ].set_index("case_id")
+                        j = tr.join(cr, lsuffix="_t", rsuffix="_c")
+                        tl, cl_ = j["lead_t"], j["lead_c"]
+                        wins = ((tl > cl_) & tl.notna() & cl_.notna()
+                                | (tl.notna() & cl_.isna()))
+                        losses = ((tl < cl_) & tl.notna() & cl_.notna()
+                                  | (cl_.notna() & tl.isna()))
+                        decided = int(wins.sum() + losses.sum())
+                        matched.append({
+                            "warn_window": W, "sigma": sigma, "detector": det,
+                            "fa_target": target, "signal": sig,
+                            "fa_topo": float(p.fa_rate),
+                            "fa_ctrl": float(ctrl.fa_rate),
+                            "detect_topo": float(p.detect_rate),
+                            "detect_ctrl": float(ctrl.detect_rate),
+                            "median_lead_topo": float(p.median_lead),
+                            "median_lead_ctrl": float(ctrl.median_lead),
+                            "win_frac": float(wins.sum() / decided)
+                            if decided else np.nan, "n_decided": decided})
+    pd.concat(sweeps, ignore_index=True).to_csv(
+        args.out / "fa_sweep.csv", index=False)
     matched_df = pd.DataFrame(matched)
     matched_df.to_csv(args.out / "matched_fa.csv", index=False)
+    sweep = sweeps[len(args.warn_windows) // 2]  # middle W for the plot
 
     import matplotlib
     matplotlib.use("Agg")
