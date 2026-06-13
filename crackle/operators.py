@@ -56,28 +56,32 @@ class SpectralConv2d(nn.Module):
 
 class FNO2d(nn.Module):
     def __init__(self, c_in: int = 2, width: int = 32, modes: int = 12,
-                 n_layers: int = 4):
+                 n_layers: int = 4, c_out: int = 1):
         super().__init__()
+        self.c_out = c_out
         self.lift = nn.Conv2d(c_in, width, 1)
         self.spectral = nn.ModuleList(
             [SpectralConv2d(width, width, modes, modes) for _ in range(n_layers)])
         self.local = nn.ModuleList(
             [nn.Conv2d(width, width, 1) for _ in range(n_layers)])
         self.proj = nn.Sequential(nn.Conv2d(width, width, 1), nn.GELU(),
-                                  nn.Conv2d(width, 1, 1))
+                                  nn.Conv2d(width, c_out, 1))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = self.lift(x)
         for sp, lc in zip(self.spectral, self.local):
             h = h + F.gelu(sp(h) + lc(h))
-        return self.proj(h).squeeze(1)  # (B, H, W) increment (pre-relu)
+        out = self.proj(h)
+        return out.squeeze(1) if self.c_out == 1 else out  # (B,[C,]H,W)
 
 
 class ConvNet(nn.Module):
     """Residual dilated CNN operator — strong on sharp local crack fronts."""
 
-    def __init__(self, c_in: int = 2, width: int = 48, n_blocks: int = 5):
+    def __init__(self, c_in: int = 2, width: int = 48, n_blocks: int = 5,
+                 c_out: int = 1):
         super().__init__()
+        self.c_out = c_out
         self.lift = nn.Conv2d(c_in, width, 3, padding=1)
         self.blocks = nn.ModuleList()
         for i in range(n_blocks):
@@ -86,13 +90,14 @@ class ConvNet(nn.Module):
                 nn.Conv2d(width, width, 3, padding=d, dilation=d), nn.GELU(),
                 nn.Conv2d(width, width, 3, padding=1)))
         self.proj = nn.Sequential(nn.Conv2d(width, width, 1), nn.GELU(),
-                                  nn.Conv2d(width, 1, 1))
+                                  nn.Conv2d(width, c_out, 1))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         h = F.gelu(self.lift(x))
         for blk in self.blocks:
             h = h + F.gelu(blk(h))
-        return self.proj(h).squeeze(1)
+        out = self.proj(h)
+        return out.squeeze(1) if self.c_out == 1 else out
 
 
 class DeepONet(nn.Module):
