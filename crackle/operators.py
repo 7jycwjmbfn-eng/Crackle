@@ -211,6 +211,14 @@ class GraphForecaster(nn.Module):
                 bonds: torch.Tensor) -> torch.Tensor:
         s, n, _ = node_x.shape
         src, dst = bonds[:, 0], bonds[:, 1]
+        # node degree for MEAN aggregation: sum-aggregation over the ~22
+        # bonds/node makes init messages ~22x too large, so the model
+        # over-predicts and flees to the zero-increment (persistence) basin.
+        deg = torch.zeros(n, device=node_x.device)
+        ones = torch.ones(src.shape[0], device=node_x.device)
+        deg.index_add_(0, src, ones)
+        deg.index_add_(0, dst, ones)
+        inv_deg = (1.0 / deg.clamp(min=1.0)).view(1, n, 1)
         h = self.node_in(node_x)                       # (S, N, d)
         e = self.edge_in(edge_x).unsqueeze(0).expand(s, -1, -1)  # (S, M, d)
         for r in range(self.rounds):
@@ -219,7 +227,7 @@ class GraphForecaster(nn.Module):
             agg = torch.zeros_like(h)
             agg.index_add_(1, src, m)
             agg.index_add_(1, dst, m)                  # undirected bonds
-            h = h + self.node_upd[r](torch.cat([h, agg], dim=-1))
+            h = h + self.node_upd[r](torch.cat([h, agg * inv_deg], dim=-1))
         return self.head(h).squeeze(-1)                # (S, N) pre-relu
 
 

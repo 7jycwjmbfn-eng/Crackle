@@ -154,6 +154,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--graph-starts", type=int, default=64,
                         help="random rollout starts sampled per case per epoch "
                              "for the graph (controls graph train cost)")
+    parser.add_argument("--graph-rounds", type=int, default=3,
+                        help="message-passing rounds in the bond-graph "
+                             "forecaster (fewer = far fewer kernel launches)")
+    parser.add_argument("--graph-dim", type=int, default=64,
+                        help="hidden width of the bond-graph forecaster")
     parser.add_argument("--front-weight", type=float, default=50.0,
                         help="extra loss weight on advancing-front cells (cells "
                              "where the true increment is non-zero). Applied "
@@ -270,7 +275,8 @@ def main(argv: list[str] | None = None) -> int:
     # ========================= crackle graph forecaster =======================
     def train_graph(seed):
         torch.manual_seed(seed)
-        model = GraphForecaster().to(device)
+        model = GraphForecaster(d=args.graph_dim,
+                                rounds=args.graph_rounds).to(device)
         opt = torch.optim.AdamW(model.parameters(), lr=2e-3)
         rng = np.random.default_rng(seed)
         # pre-move per-case tensors
