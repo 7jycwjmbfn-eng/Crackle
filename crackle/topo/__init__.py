@@ -10,7 +10,13 @@ from crackle.topo.features import frame_summary, persistence_entropy, sequence_s
 from crackle.topo.instability import instability_step, lead_time_table, onset_step
 from crackle.topo.matching import greedy_match, match_features, wasserstein_match
 from crackle.topo.roi import apply_roi, boundary_margin_mask, horizon_margin_mask
-from crackle.topo.io import flat_to_fields, infer_grid_shape, load_case_npz
+from crackle.topo.io import (
+    flat_to_fields,
+    infer_grid_shape,
+    load_case_npz,
+    load_mask_sequence,
+    natural_key,
+)
 
 __all__ = [
     "Diagram", "backend", "betti_at_level", "superlevel_persistence",
@@ -20,4 +26,5 @@ __all__ = [
     "apply_roi", "boundary_margin_mask", "horizon_margin_mask",
     "greedy_match", "match_features", "wasserstein_match",
     "flat_to_fields", "infer_grid_shape", "load_case_npz",
+    "load_mask_sequence", "natural_key",
 ]
