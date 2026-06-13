@@ -58,12 +58,28 @@ def _one_case(case: dict[str, Any]) -> dict[str, Any]:
     case_id = case["case_id"]
     shard = Path(_W["dataset"]) / "shards" / f"{case_id}.npz"
     data = np.load(shard)
-    movie = data["movie_u8"].astype(np.float64) / 255.0
-    events, curves, roi = case_events_and_curves(movie, config=config)
+    clean = data["movie_u8"].astype(np.float64) / 255.0
+    # ground-truth events (labels) always come from the clean field
+    clean_events, clean_curves, roi = case_events_and_curves(clean, config=config)
+
+    sigma = float(_W.get("noise_sigma", 0.0))
+    if sigma > 0.0:
+        from crackle.topo.noise import add_measurement_noise
+        case_seed = int(case_id.split("_")[-1])
+        movie = add_measurement_noise(
+            clean, sigma=sigma, corr_cells=_W.get("noise_corr", 1.5),
+            seed=_W.get("noise_seed", 0) + 1000 * case_seed)
+        events, curves, _ = case_events_and_curves(movie, config=config)
+        label_events = clean_events  # forecast TRUE failure from noisy obs
+        source = f"movie_u8+noise{sigma}"
+    else:
+        movie, events, curves, label_events = (
+            clean, clean_events, clean_curves, None)
+        source = "movie_u8"
 
     cat = pd.DataFrame(
         catalog_rows(events, case_id=case_id, config=config,
-                     source_field_key="movie_u8"),
+                     source_field_key=source),
         columns=CATALOG_COLUMNS,
     )
     cat_dir = Path(_W["out"]) / "catalogs"
@@ -72,7 +88,8 @@ def _one_case(case: dict[str, Any]) -> dict[str, Any]:
     cat.to_parquet(cat_path, index=False)
 
     rs = pd.DataFrame(
-        riskset_rows(movie, events, curves, roi, case_id=case_id, config=config)
+        riskset_rows(movie, events, curves, roi, case_id=case_id,
+                     config=config, label_events=label_events)
     )
     feat_cols = [c for c in rs.columns if c in FEATURE_COLUMNS]
     rs[feat_cols] = rs[feat_cols].astype(np.float32)
@@ -181,6 +198,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--horizons", type=int, nargs="*", default=[3, 5, 10])
     parser.add_argument("--decay", type=float, default=0.85)
     parser.add_argument("--ood-notches", type=int, default=4)
+    parser.add_argument("--noise-sigma", type=float, default=0.0,
+                        help="measurement noise on features; labels stay "
+                             "ground-truth (clean). 0 = clean build")
+    parser.add_argument("--noise-corr", type=float, default=1.5)
+    parser.add_argument("--noise-seed", type=int, default=20260612)
     args = parser.parse_args(argv)
 
     manifest = list(csv.DictReader((args.dataset / "manifest.csv").open()))
@@ -193,11 +215,16 @@ def main(argv: list[str] | None = None) -> int:
     (args.out / "config.json").write_text(json.dumps(
         {**config, "dataset": str(args.dataset),
          "ood_notches": args.ood_notches,
+         "noise_sigma": args.noise_sigma, "noise_corr": args.noise_corr,
+         "noise_seed": args.noise_seed,
          "git_commit": _git_commit(Path.cwd())}, indent=2), encoding="utf-8")
 
     started = time.perf_counter()
     worker_args = {"dataset": str(args.dataset), "out": str(args.out),
-                   "config": config, "ood_notches": args.ood_notches}
+                   "config": config, "ood_notches": args.ood_notches,
+                   "noise_sigma": args.noise_sigma,
+                   "noise_corr": args.noise_corr,
+                   "noise_seed": args.noise_seed}
     results: list[dict[str, Any]] = []
     with Pool(processes=args.workers, initializer=_init_worker,
               initargs=(worker_args,)) as pool:

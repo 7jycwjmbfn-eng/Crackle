@@ -95,6 +95,40 @@ class TestLabelsAndHistory(unittest.TestCase):
         self.assertEqual(rows[(7, 0, 1)]["hist_global_h0_born"], 0.25)
 
 
+class TestNoisyLabelsAreGroundTruth(unittest.TestCase):
+    """Noisy-feature build must keep CLEAN labels (label_events override)."""
+
+    def test_labels_clean_features_noisy(self) -> None:
+        from crackle.topo.events import extract_events
+        from crackle.topo.features import sequence_summaries
+        from crackle.topo.noise import add_measurement_noise
+        from crackle.topo.roi import horizon_margin_mask
+
+        rng = np.random.default_rng(3)
+        movie = _movie(rng, t_steps=12, ny=18, nx=24)
+        config = RiskSetConfig(horizons=(3,), roi_margin_k=0.0)
+        clean_events, clean_curves, roi = case_events_and_curves(
+            movie, config=config)
+        ny, nx = movie.shape[1], movie.shape[2]
+        roi = np.ones((ny, nx), dtype=bool)
+
+        clean_rows = riskset_rows(movie, clean_events, clean_curves, roi,
+                                  case_id="c", config=config)
+        noisy = add_measurement_noise(movie, sigma=0.05, seed=1)
+        n_events, n_curves, _ = case_events_and_curves(noisy, config=config)
+        noisy_rows = riskset_rows(noisy, n_events, n_curves, roi, case_id="c",
+                                  config=config, label_events=clean_events)
+
+        label_cols = [c for c in clean_rows[0] if c.startswith("label_")]
+        feat_any_diff = False
+        for a, b in zip(clean_rows, noisy_rows):
+            for lc in label_cols:               # labels identical
+                self.assertEqual(a[lc], b[lc], lc)
+            if a["dmg_mean"] != b["dmg_mean"]:  # features differ
+                feat_any_diff = True
+        self.assertTrue(feat_any_diff, "noisy features should differ")
+
+
 class TestSplits(unittest.TestCase):
     def test_deterministic_and_ood(self) -> None:
         self.assertEqual(split_of_case("case_000001", 2),

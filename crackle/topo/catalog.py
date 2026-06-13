@@ -148,12 +148,20 @@ def riskset_rows(
     *,
     case_id: str,
     config: RiskSetConfig,
+    label_events: list[TopoEvent] | None = None,
 ) -> list[dict]:
     """One forward pass; emits rows for every (step, in-ROI tile).
 
     Features at step t see frames <= t and events with step <= t.
     Labels for horizon H see events with step in (t, t+H]; rows where
     t + H exceeds the movie are right-censored and get label -1.
+
+    label_events (optional): when given, LABELS are built from these
+    ground-truth events while all FEATURES (damage stats, global curves,
+    decayed event history) still come from `events`/`movie`/`curves`.
+    This is the noisy-observation / clean-target setup: you forecast the
+    true failure events from a noisy observation of the field. When None,
+    labels and features share `events` (the standard clean build).
     """
     t_steps, ny, nx = movie.shape
     tile = config.tile
@@ -161,7 +169,7 @@ def riskset_rows(
     tile_of = {t: i for i, t in enumerate(tiles)}
     lag = config.delta_lag
 
-    # events bucketed by step for history updates and labels
+    # events bucketed by step for history updates (observed features)
     ev_by_step: dict[int, list[TopoEvent]] = {}
     for e in events:
         ev_by_step.setdefault(e.step, []).append(e)
@@ -169,9 +177,10 @@ def riskset_rows(
     def tile_idx(e: TopoEvent) -> int | None:
         return tile_of.get((e.y // tile, e.x // tile))
 
-    # label lookup: kind -> (step, tile_index) occurrence matrix
+    # label lookup: kind -> (step, tile_index) occurrence matrix, built from
+    # the ground-truth events (label_events if provided, else `events`)
     occ = {k: np.zeros((t_steps, len(tiles)), dtype=bool) for k in config.kinds}
-    for e in events:
+    for e in (label_events if label_events is not None else events):
         ti = tile_idx(e)
         if ti is not None and e.kind in occ and 0 <= e.step < t_steps:
             occ[e.kind][e.step, ti] = True
