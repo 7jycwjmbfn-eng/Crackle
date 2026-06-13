@@ -52,20 +52,29 @@ def _case_curves(case_id: str) -> tuple[str, np.ndarray]:
 
     data = np.load(Path(_W["dataset"]) / "shards" / f"{case_id}.npz")
     movie = data["movie_u8"].astype(np.float64) / 255.0
+    sigma = float(_W.get("noise_sigma", 0.0))
+    if sigma > 0.0:
+        # noisy-observation covariates, consistent with a noisy event stream
+        from crackle.topo.noise import add_measurement_noise
+        cs = int(case_id.split("_")[-1])
+        movie = add_measurement_noise(movie, sigma=sigma, corr_cells=1.5,
+                                      seed=_W.get("noise_seed", 0) + 1000 * cs)
     _, curves, _ = case_events_and_curves(
         movie, config=RiskSetConfig(**_W["config"]))
     return case_id, np.stack([curves[k] for k in GLOBAL_CURVE_KEYS], axis=1)
 
 
 def build_curve_cache(dataset: Path, case_ids: list[str], workers: int,
-                      config: dict, cache_path: Path) -> dict[str, np.ndarray]:
+                      config: dict, cache_path: Path,
+                      noise: dict | None = None) -> dict[str, np.ndarray]:
     if cache_path.exists():
         data = np.load(cache_path)
         if set(data.files) >= set(case_ids):
             return {c: data[c] for c in case_ids}
     out: dict[str, np.ndarray] = {}
+    init = {"dataset": str(dataset), "config": config, **(noise or {})}
     with Pool(processes=workers, initializer=_init_worker,
-              initargs=({"dataset": str(dataset), "config": config},)) as pool:
+              initargs=(init,)) as pool:
         for i, (cid, arr) in enumerate(
                 pool.imap_unordered(_case_curves, case_ids), 1):
             out[cid] = arr.astype(np.float32)
@@ -84,6 +93,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--seeds", type=int, nargs="*", default=[0, 1, 2])
     parser.add_argument("--epochs", type=int, default=12)
     parser.add_argument("--device", type=str, default=None)
+    parser.add_argument("--noise-sigma", type=float, default=0.0,
+                        help="apply measurement noise to the curve covariates "
+                             "(pair with a noisy --catalog for a noisy run)")
+    parser.add_argument("--noise-seed", type=int, default=20260612)
     args = parser.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -109,10 +122,12 @@ def main(argv: list[str] | None = None) -> int:
     n_steps = 81  # generated movies are (steps+1) frames
     config = NTPPConfig(epochs=args.epochs)
 
+    tag = "" if args.noise_sigma <= 0 else f"_noise{args.noise_sigma}"
     curves = build_curve_cache(
         args.dataset, list(summary["case_id"]), args.workers,
         {"sig_tau": 0.08, "roi_margin_k": 1.5},
-        args.out / "curves_cache.npz")
+        args.out / f"curves_cache{tag}.npz",
+        noise={"noise_sigma": args.noise_sigma, "noise_seed": args.noise_seed})
 
     by_case = dict(tuple(events.groupby("case_id")))
     empty = pd.DataFrame({"step": [], "kind": [], "y": [], "x": []})

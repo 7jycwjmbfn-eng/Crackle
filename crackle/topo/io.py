@@ -37,16 +37,26 @@ def flat_to_fields(flat: np.ndarray, points: np.ndarray) -> np.ndarray:
 
 
 def load_case_npz(
-    path: str | Path, key: str = "reference_damage"
+    path: str | Path, key: str = "reference_damage",
+    points_key: str | None = None,
 ) -> tuple[np.ndarray, np.ndarray, dict[str, np.ndarray]]:
-    """Returns (fields (T,ny,nx), points (N,2), raw npz dict)."""
+    """Returns (fields (T,ny,nx), points (N,2), raw npz dict).
+
+    points_key picks the node-coordinate array; if None, falls back through
+    "points" then "reference_x" (the dense-PD / DLR npz convention), so the
+    same audit consumes hetero_pinning, dense-peridynamics, and DLR outputs.
+    """
     data = dict(np.load(Path(path)))
-    if "points" not in data:
-        raise KeyError(f"{path} has no 'points'; keys: {sorted(data)}")
+    pk = points_key or next(
+        (k for k in ("points", "reference_x") if k in data), None)
+    if pk is None or pk not in data:
+        raise KeyError(
+            f"{path} has no point coords (tried {points_key or 'points/reference_x'}); "
+            f"keys: {sorted(data)}")
     if key not in data:
         raise KeyError(f"{path} has no '{key}'; keys: {sorted(data)}")
-    fields = flat_to_fields(data[key], data["points"])
-    return fields, data["points"], data
+    fields = flat_to_fields(data[key], data[pk])
+    return fields, data[pk], data
 
 
 # --- real-data loaders: ordered image/mask sequence -> (T, ny, nx) ----------
