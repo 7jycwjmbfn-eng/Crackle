@@ -17,6 +17,7 @@ individual reports referenced below.
 | Phase 2.1 causal onset | DONE — selectivity-crossover result | topo_phase2_causal_onset_20260611.md |
 | Phase 2.1 noise robustness [pre-registered] | **PASS (qualified)** — topo leads control at matched FA under noise, all 3 σ; cum_events fails | topo_phase2_onset_noise_20260612.md |
 | Phase 2.2 tabular ablation [pre-registered] | **PASS** | topo_phase2_hazard_20260611.md |
+| Phase 2.2 ablation UNDER NOISE [pre-registered] | **PASS 3/3 test+OOD** — topo advantage over traditional methods preserved under noise | topo_phase2_hazard_noise_20260612.md |
 | Track A neural TPP [pre-registered] | **PASS** (with OOD count caveat) | topo_phase2_track_a_20260611.md |
 | Track B learned vectorization [pre-registered] | **FAIL — negative readout** | topo_phase2_track_b_20260611.md |
 | Track C bond-graph GNN [pre-registered] | **PASS 3/3** — −35…−58% NLL vs strong referee, strengthens OOD | topo_phase2_track_c_20260611.md |
@@ -48,10 +49,17 @@ individual reports referenced below.
    (CUSUM cannot make the macroscopic control selective at low noise);
    absolute detection rates are low. This is the strengthening the
    earlier degenerate-FA result needed.
-4. TOPOLOGICAL FEATURES IMPROVE HAZARD FORECASTING. Pre-registered
-   PASS: local+topo+history > local+topo > local on test NLL and top-1%
-   recall, every horizon {3,5,10}, GBM and logistic, margins 2–3 orders
-   above seed std; ordering survives the held-out 4-notch OOD stratum.
+4. TOPOLOGICAL FEATURES IMPROVE HAZARD FORECASTING — AND BEAT TRADITIONAL
+   METHODS UNDER NOISE. Pre-registered PASS: local+topo+history >
+   local+topo > local on test NLL and top-1% recall, every horizon
+   {3,5,10}, GBM and logistic, margins 2–3 orders above seed std; beats
+   every classical referee (base rate, carry-forward, Hawkes-logistic);
+   ordering survives the held-out 4-notch OOD stratum. Re-run under
+   DIC-like measurement noise (σ ≈ sig_tau, features noised, labels clean
+   ground truth): the topological advantage over the traditional baseline
+   is PRESERVED — the NLL gap (a)−(c) is essentially unchanged clean-vs-
+   noise on test (0.013/0.020/0.032) and slightly widens on OOD. The win
+   over traditional methods is not a clean-simulation artifact.
 5. NEURAL TPP BEATS PARAMETRIC HAWKES (Track A). Pre-registered PASS on
    all LL components in-distribution; mark prediction (kind 0.51 vs 0.38
    acc) is the main gain. Honest caveats: count intensity loses to the
