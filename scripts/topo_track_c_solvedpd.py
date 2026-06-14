@@ -118,7 +118,7 @@ def main(argv=None) -> int:
 
     import torch
     import torch.nn.functional as F
-    from crackle.operators import FNO2d, ConvNet
+    from crackle.operators import FNO2d, ConvNet, DeepONet
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     print(f"device {device}; loading ...", flush=True)
@@ -264,6 +264,7 @@ def main(argv=None) -> int:
     op_builders = {
         "op_fno": lambda: FNO2d(c_in=3, width=32, modes=12, n_layers=4, c_out=3),
         "op_convnet": lambda: ConvNet(c_in=3, width=48, n_blocks=5, c_out=3),
+        "op_deeponet": lambda: DeepONet(c_in=3, p=64, branch_width=48, c_out=3),
     }
     for seed in args.seeds:
         # crackle GNN
