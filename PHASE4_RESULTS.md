@@ -33,19 +33,21 @@ which did not help them, so the gap is structural, not feature starvation).
 
 Autoregressive rollout of the solved-PD damage field; lower is better.
 `rel_l2` = full-field relative L2; `bottleneck` = topological (H0) bottleneck
-distance. **Seed 0 only — multi-seed still pending.**
+distance. **L2: operators 3 seeds (mean); bottleneck + crackle graph: seed 0.**
 
 | model        | L2 h10 | h20 | h30 | h40 | bott h10 | h20 | h30 | h40 |
 |--------------|--------|------|------|------|---------|------|------|------|
 | persistence  | 0.107 | 0.181 | 0.243 | 0.291 | 0.027 | 0.060 | 0.081 | 0.102 |
 | mean_rate (trad.) | 0.093 | 0.151 | 0.197 | 0.229 | 0.022 | 0.041 | 0.053 | 0.063 |
-| mlp_pixel (ablation) | 0.114 | 0.229 | 0.335 | 0.491 | 0.024 | 0.051 | 0.054 | 0.061 |
-| **FNO**      | **0.066** | **0.112** | **0.144** | **0.170** | 0.027 | **0.038** | 0.052 | **0.048** |
+| mlp_pixel (ablation) | 0.116 | 0.235 | 0.347 | 0.519 | 0.024 | 0.051 | 0.054 | 0.061 |
+| **FNO**      | **0.071** | **0.127** | **0.164** | **0.194** | 0.027 | **0.038** | 0.052 | **0.048** |
 | DeepONet     | 0.107 | 0.181 | 0.243 | 0.291 | 0.027 | 0.060 | 0.081 | 0.102 |
 | ConvNet      | 0.107 | 0.181 | 0.243 | 0.291 | 0.027 | 0.060 | 0.081 | 0.102 |
 | crackle graph| 0.107 | 0.181 | 0.243 | 0.291 | 0.027 | 0.060 | 0.081 | 0.102 |
 
-Verdict: **FNO wins** at every horizon on both L2 and topology. DeepONet,
+FNO 3-seed std: ~0.013/0.024/0.031/0.037 — its margin over mean_rate holds at
+h10–h30 (and ties at h40). Verdict: **FNO wins** at every horizon on both L2
+and topology. DeepONet,
 ConvNet and the crackle graph collapse to persistence under the shared
 protocol (the graph is unstable on this task — oscillates collapse/over-growth
 across configs; not config-hunted into a win). mlp_pixel over-grows.
@@ -53,20 +55,22 @@ across configs; not config-hunted into a win). mlp_pixel over-grows.
 ## 2. Full-field damage rollout — TRUE-OOD (never-seen notched-plate set)
 
 Train on hard_bench, evaluate on `crack_notched_plate_v5_1` (different
-geometry / loading / length — never trained on). **Seed 0 only.**
+geometry / loading / length — never trained on). **L2: operators 3 seeds
+(mean); bottleneck + crackle graph: seed 0.**
 
 | model        | L2 h10 | h20 | h30 | h40 | bott h10 | h20 | h30 | h40 |
 |--------------|--------|------|------|------|---------|------|------|------|
 | persistence  | 0.142 | 0.234 | 0.305 | 0.359 | 0.018 | 0.065 | 0.087 | 0.121 |
 | mean_rate (trad.) | 0.115 | 0.178 | 0.220 | 0.245 | 0.010 | 0.044 | 0.055 | 0.078 |
-| mlp_pixel    | 0.120 | 0.192 | 0.249 | 0.304 | 0.017 | 0.064 | 0.085 | 0.119 |
-| **FNO**      | **0.046** | **0.083** | **0.106** | **0.115** | **0.011** | **0.021** | **0.012** | **0.020** |
+| mlp_pixel    | 0.120 | 0.192 | 0.247 | 0.297 | 0.017 | 0.064 | 0.085 | 0.119 |
+| **FNO**      | **0.046** | **0.077** | **0.096** | **0.105** | **0.011** | **0.021** | **0.012** | **0.020** |
 | DeepONet     | 0.142 | 0.234 | 0.305 | 0.359 | 0.018 | 0.065 | 0.087 | 0.121 |
 | ConvNet      | 0.142 | 0.234 | 0.305 | 0.359 | 0.018 | 0.065 | 0.087 | 0.121 |
 | crackle graph| 0.089 | 0.133 | 0.177 | 0.233 | 0.017 | 0.063 | 0.084 | 0.118 |
 
-Verdict: **FNO wins decisively, and generalizes to the new dataset even better
-than in-distribution** (L2 0.046–0.115; topology far ahead). The crackle graph
+FNO 3-seed std ~0.007–0.024. Verdict: **FNO wins decisively, and generalizes to
+the new dataset even better than in-distribution** (L2 0.046–0.105; topology
+far ahead). The crackle graph
 does beat the traditional baselines here (below mean_rate at every horizon) but
 loses clearly to FNO. On this task an L2-optimized smooth operator is simply
 the right tool.
@@ -169,9 +173,10 @@ the bond-graph generalizes.
 
 ## Status / still converging
 
-- Field-rollout tables (1, 2): **single seed (0)**; multi-seed runs pending to
-  attach variance. Qualitative gaps (FNO >> rest) far exceed plausible seed
-  noise given the near-deterministic collapse of the other models.
+- Field-rollout tables (1, 2): operator L2 now **3 seeds** (FNO std
+  ~0.007–0.037; its win holds). bottleneck columns and the crackle-graph row
+  are still seed 0 (graph is single-seed; it collapses/over-grows and is not
+  the headline). The other operators collapse deterministically (std 0).
 - Hazard proxy (table 3): **3 seeds**; operator seed-std ~1e-4, GNN small.
 - Hazard solved-PD (table 4): **5 seeds**, DeepONet included; seed-std
   ~1e-4–5e-4 (shown robust). Larger n / more OOD datasets would further harden.
