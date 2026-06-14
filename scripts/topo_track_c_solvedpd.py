@@ -29,7 +29,8 @@ import pandas as pd
 from crackle.data.common import write_json
 from crackle.experiments.hetero_pinning import _git_commit
 from crackle.metrics.point_process import binary_nll, topk_precision_recall
-from crackle.topo.bondgnn import BondGNN, GraphSample, build_node_features
+from crackle.topo.bondgnn import (BondGNN, GraphSample, build_node_features,
+                                  referee_features)
 
 HORIZONS = (3, 5, 10)
 
@@ -221,6 +222,45 @@ def main(argv=None) -> int:
 
     results = []
     started = time.perf_counter()
+
+    # ---------------- traditional referee (XGBoost on bond feats + 1-hop) ----
+    try:
+        import xgboost as xgb
+
+        def tab(split):
+            xs, ys = [], []
+            for ds, c in splits[split]:
+                for g in ds[c]["samples"]:
+                    gg = GraphSample(bonds=g.bonds, alive=g.alive,
+                                     bond_x=(g.bond_x - bmean) / bstd,
+                                     node_x=(g.node_x - nmean) / nstd,
+                                     labels=g.labels, n_nodes=g.n_nodes)
+                    xs.append(referee_features(gg)); ys.append(g.labels[g.alive])
+            return np.concatenate(xs), np.concatenate(ys)
+
+        xtr, ytr = tab("train")
+        ev = {s: tab(s) for s in ("test", "ood")}
+        for hi, h in enumerate(HORIZONS):
+            keep = ytr[:, hi] >= 0
+            clf = xgb.XGBClassifier(n_estimators=300, max_depth=6,
+                                    learning_rate=0.1, subsample=0.8,
+                                    colsample_bytree=0.8, tree_method="hist",
+                                    n_jobs=0, random_state=0,
+                                    eval_metric="logloss")
+            clf.fit(xtr[keep], ytr[keep][:, hi])
+            for s, (xe, ye) in ev.items():
+                mm = ye[:, hi] >= 0
+                prob = clf.predict_proba(xe[mm])[:, 1]; y = ye[mm][:, hi]
+                k = max(1, int(0.01 * y.size))
+                prec, rec = topk_precision_recall(prob, y, k)
+                results.append(dict(model="gbm_referee", seed=-1, horizon=h,
+                                    split=s, nll=binary_nll(prob, y),
+                                    top1pct_recall=rec, top1pct_precision=prec,
+                                    n_rows=int(y.size), pos_rate=float(y.mean())))
+        print("gbm referee done", flush=True)
+    except Exception as exc:  # xgboost optional; operators+gnn still run
+        print(f"gbm referee skipped: {exc}", flush=True)
+
     op_builders = {
         "op_fno": lambda: FNO2d(c_in=3, width=32, modes=12, n_layers=4, c_out=3),
         "op_convnet": lambda: ConvNet(c_in=3, width=48, n_blocks=5, c_out=3),
