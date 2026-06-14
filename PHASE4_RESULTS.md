@@ -118,28 +118,29 @@ identical predictions; the native bond graph represents each bond.
 
 Same task/metric on SOLVED-PD (`crack_hard_bench`, real bond_alive/bond_stretch
 series). Train/val/test by case; OOD = a different solved-PD dataset
-(`crack_notched_plate_v5_1`) never trained on. **5 seeds** (NLL ± across-seed
-std shown; seed std ~1e-4–5e-4, so all gaps below are robust).
+(`crack_notched_plate_v5_1`) never trained on. **10 seeds**, NLL shown as
+mean±std (GBM is a single deterministic fit, no std). All crackle-vs-operator
+gaps below exceed the spread.
 
-### TEST (in-distribution)
+### TEST (in-distribution) — NLL mean±std / recall
 
-| model | NLL H3/H5/H10 | recall H3/H5/H10 |
-|-------|---------------|------------------|
-| op_fno (operator) | 0.00146 / 0.00222 / 0.00514 | 0.778 / 0.757 / 0.618 |
-| op_convnet (operator) | 0.00163 / 0.00246 / 0.00595 | 0.643 / 0.642 / 0.504 |
-| op_deeponet (operator) | 0.00255 / 0.00402 / 0.00911 | 0.001 / 0.004 / 0.006 |
-| gbm_referee (traditional) | 0.00080 / 0.00077 / 0.00247 | 0.964 / 0.989 / 0.981 |
-| **bond_gnn (crackle)** | 0.00087 / 0.00127 / 0.00320 | 0.999 / 0.995 / 0.928 |
+| model | H3 | H5 | H10 | recall H3/H5/H10 |
+|-------|----|----|-----|------------------|
+| op_fno (operator) | 0.00145±0.00002 | 0.00221±0.00005 | 0.00510±0.00026 | 0.78/0.77/0.62 |
+| op_convnet | 0.00163±0.00004 | 0.00246±0.00006 | 0.00601±0.00028 | 0.64/0.64/0.50 |
+| op_deeponet | 0.00255±0.00002 | 0.00402±0.00004 | 0.00911±0.00009 | 0.00/0.01/0.01 |
+| gbm_referee (traditional) | 0.00080 | 0.00077 | 0.00247 | 0.96/0.99/0.98 |
+| **bond_gnn (crackle)** | 0.00088±0.00008 | 0.00124±0.00008 | 0.00322±0.00024 | 1.00/0.99/0.94 |
 
-### OOD (different solved-PD dataset — never trained on; THE key test)
+### OOD (never-trained-on dataset; THE key test) — NLL mean±std / recall
 
-| model | NLL H3/H5/H10 | recall H3/H5/H10 |
-|-------|---------------|------------------|
-| op_fno | 0.00170 / 0.00257 / 0.00457 | 0.828 / 0.817 / 0.766 |
-| op_convnet | 0.00192 / 0.00291 / 0.00520 | 0.666 / 0.657 / 0.627 |
-| op_deeponet | 0.00313 / 0.00494 / 0.00928 | 0.000 / 0.001 / 0.002 |
-| gbm_referee | 0.00330 / 0.00297 / 0.00522 | 0.806 / 0.952 / 0.916 |
-| **bond_gnn (crackle)** | **0.00103 / 0.00152 / 0.00289** | **0.995 / 0.989 / 0.958** |
+| model | H3 | H5 | H10 | recall H3/H5/H10 |
+|-------|----|----|-----|------------------|
+| op_fno | 0.00170±0.00003 | 0.00256±0.00003 | 0.00455±0.00007 | 0.83/0.83/0.77 |
+| op_convnet | 0.00192±0.00004 | 0.00292±0.00005 | 0.00519±0.00012 | 0.66/0.65/0.63 |
+| op_deeponet | 0.00313±0.00003 | 0.00494±0.00004 | 0.00928±0.00011 | 0.00/0.00/0.00 |
+| gbm_referee | 0.00330 | 0.00297 | 0.00522 | 0.81/0.95/0.92 |
+| **bond_gnn (crackle)** | **0.00105±0.00023** | **0.00149±0.00031** | **0.00300±0.00068** | **0.995/0.99/0.96** |
 
 (DeepONet is the worst model on solved-PD too — recall ≈ 0, its global
 branch/trunk basis cannot localize an individual bond.)
@@ -178,8 +179,9 @@ the bond-graph generalizes.
   are still seed 0 (graph is single-seed; it collapses/over-grows and is not
   the headline). The other operators collapse deterministically (std 0).
 - Hazard proxy (table 3): **3 seeds**; operator seed-std ~1e-4, GNN small.
-- Hazard solved-PD (table 4): **5 seeds**, DeepONet included; seed-std
-  ~1e-4–5e-4 (shown robust). Larger n / more OOD datasets would further harden.
+- Hazard solved-PD (table 4): **10 seeds**, DeepONet included; mean±std shown.
+  crackle-vs-operator OOD gap (e.g. H3 0.00105±0.00023 vs FNO 0.00170±0.00003)
+  exceeds the spread. Further hardening = more OOD datasets / larger case n.
 
 ## Reproduce
 

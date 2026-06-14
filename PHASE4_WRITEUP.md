@@ -126,24 +126,25 @@ NLL (↓) / top-1% recall (↑):
 Crackle beats the best operator by 82–91% NLL (~3× recall) and the GBM by
 37–58% NLL, on both TEST and OOD.
 
-### 5.3 Task B2 — per-bond hazard, real solved-PD (5 seeds; 10-seed CI in progress)
+### 5.3 Task B2 — per-bond hazard, real solved-PD (10 seeds, NLL mean±std)
 
-NLL (↓) / top-1% recall (↑):
+NLL (↓, mean±std) / top-1% recall (↑). GBM is a single deterministic fit.
 
-| model | TEST H3/H5/H10 | OOD H3/H5/H10 |
+| model | TEST H3/H5/H10 (NLL) | OOD H3/H5/H10 (NLL) |
 |-------|----------------|----------------|
-| op_fno | 0.00146/0.00222/0.00514 · 0.78/0.76/0.62 | 0.00170/0.00257/0.00457 · 0.83/0.82/0.77 |
-| op_convnet | 0.00163/0.00246/0.00595 · 0.64/0.64/0.50 | 0.00192/0.00291/0.00520 · 0.67/0.66/0.63 |
-| op_deeponet | 0.00255/0.00402/0.00911 · ~0.00 | 0.00313/0.00494/0.00928 · ~0.00 |
-| gbm (classical) | 0.00080/0.00077/0.00247 · 0.96/0.99/0.98 | 0.00330/0.00297/0.00522 · 0.81/0.95/0.92 |
-| **bond_gnn (crackle)** | 0.00087/0.00127/0.00320 · 1.00/0.99/0.93 | **0.00103/0.00152/0.00289 · 0.995/0.99/0.96** |
+| op_fno | 0.00145±2e-5 / 0.00221±5e-5 / 0.00510±3e-4 | 0.00170±3e-5 / 0.00256±3e-5 / 0.00455±7e-5 |
+| op_convnet | 0.00163±4e-5 / 0.00246±6e-5 / 0.00601±3e-4 | 0.00192±4e-5 / 0.00292±5e-5 / 0.00519±1e-4 |
+| op_deeponet | 0.00255 / 0.00402 / 0.00911 · recall ~0 | 0.00313 / 0.00494 / 0.00928 · recall ~0 |
+| gbm (classical) | 0.00080 / 0.00077 / 0.00247 · rec 0.96/0.99/0.98 | 0.00330 / 0.00297 / 0.00522 · rec 0.81/0.95/0.92 |
+| **bond_gnn (crackle)** | 0.00088±8e-5 / 0.00124±8e-5 / 0.00322±2e-4 · rec 1.00/0.99/0.94 | **0.00105±2.3e-4 / 0.00149±3.1e-4 / 0.00300±6.8e-4 · rec 0.995/0.99/0.96** |
 
-On real mechanics, crackle beats every operator on TEST and OOD. Against the
-GBM the story is the one the "test-on-new-data" discipline is designed to
-catch: **in-distribution the GBM matches crackle, but out-of-distribution it
-degrades (H3 NLL 0.0008→0.0033) while crackle holds**, so crackle beats the GBM
-by 40–67% NLL on the new geometry. Seed std at 5 seeds is ~1e-4–5e-4
-(10-seed mean±std pending; this section will be updated).
+On real mechanics (10 seeds), crackle beats every operator on TEST and OOD with
+the gap exceeding the across-seed spread (OOD H3: crackle 0.00105±0.00023 vs
+FNO 0.00170±0.00003). Against the GBM the story is the one the
+"test-on-new-data" discipline is designed to catch: **in-distribution the GBM
+matches crackle, but out-of-distribution it degrades (H3 NLL 0.0008→0.0033)
+while crackle holds**, so crackle beats the GBM by 40–68% NLL on the new
+geometry.
 
 ## 6. Discussion
 
@@ -166,8 +167,9 @@ smooth fields, the bond graph for discrete crack events.**
 - The kinematic proxy (B1) carries no quantitative-mechanics claim; B2
   addresses this on solved peridynamics, but with small case counts (64+16)
   and a single OOD dataset. The per-bond evaluation n is large (millions of
-  at-risk-bond decisions), so the dominant uncertainty is across-seed; that is
-  being tightened to 10 seeds.
+  at-risk-bond decisions); the dominant uncertainty is across-seed and is
+  reported at 10 seeds (Section 5.3), where the crackle-vs-operator gap exceeds
+  the spread.
 - Task-A graph variance is single-seed (it is not the headline and collapses
   under the shared protocol); the operator L2 is 3-seed.
 - Horizons are short (≤10 steps for hazard, ≤40 for rollout); longer-horizon
@@ -189,7 +191,7 @@ point: the win is real precisely because the loss is reported alongside it.
 | Task A in-dist/OOD | `scripts/topo_graph_forecast.py` | `outputs/field_indist_ops3`, `outputs/field_ood_ops3`, `outputs/h2h_*` |
 | Task B1 operators | `scripts/topo_track_c_operator.py` | `outputs/hazard_operator_v2` |
 | Task B1 GNN+GBM | `scripts/topo_track_c_bondgnn.py` | `outputs/track_c_fresh` |
-| Task B2 solved-PD | `scripts/topo_track_c_solvedpd.py` | `outputs/solvedpd_hazard_v3`, `outputs/solvedpd_hazard_10seed` |
+| Task B2 solved-PD (10 seeds) | `scripts/topo_track_c_solvedpd.py` | `outputs/solvedpd_hazard_10seed` |
 
 Models: `crackle/operators.py`, `crackle/topo/bondgnn.py`. Per-phase readouts:
 `reports/topo_phase4_operator_headtohead_20260614.md` (Task A, negative),
